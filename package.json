@@ -3,6 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "description": "Bazaarfly is a modern full-stack e-commerce web app designed for a seamless shopping experience. It offers product browsing, advanced search & filters, cart, secure checkout, order tracking, user authentication, and an admin dashboard for product & sales management. Built with Next.js, MongoDB, and cloud services for scalability and performance.",
+  "homepage": "https://github.com/mdforhadulislam/bazaarfly.com#readme",
+  "bugs": {
+    "url": "https://github.com/mdforhadulislam/bazaarfly.com/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdforhadulislam/bazaarfly.com.git"
+  },
   "license": "ISC",
   "author": "Forhadul Islam <mdforhadul44@gmail.com>",
   "type": "commonjs",
@@ -15,9 +23,12 @@
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "crypto": "^1.0.1",
     "lucide-react": "^0.553.0",
+    "mongoose": "^8.19.3",
     "next": "16.0.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
