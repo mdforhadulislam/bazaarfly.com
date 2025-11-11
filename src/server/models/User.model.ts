@@ -1,5 +1,5 @@
 // src/server/models/User.model.ts
-import { Schema, model, Document, Types, Model, Query } from 'mongoose'; // Import Query
+import { Schema, model, Document, Types, Model, Query, models } from 'mongoose'; // Import Query
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
@@ -66,18 +66,10 @@ export interface IUser extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
   generatePasswordResetToken(): string;
   generateEmailVerificationToken(): string;
+  setNewPassword(newPassword: string): Promise<void>;
 }
-
-/**
- * @interface IUserModel
- * Represents the User Model, including static methods.
- */
-export interface IUserModel extends Model<IUser> {
-  /**
-   * Finds a user by their email or phone number.
-   * @param identifier - The user's email or phone number.
-   * @returns Promise<IUser | null> - The user document if found, otherwise null.
-   */
+ 
+interface IUserModel extends Model<IUser> {
   findByIdentifier(identifier: string): Promise<IUser | null>;
 }
 
@@ -180,11 +172,16 @@ userSchema.index({ lockUntil: 1 }, { expireAfterSeconds: 0 });
 userSchema.index({ source: 1 });
 
 // --- Middleware ---
+// Define salt rounds constant
+const SALT_ROUNDS = 12;
+
 userSchema.pre('save', async function (next) {
+  // Only hash the password if it has been modified (or is new)
   if (!this.isModified('password')) return next();
+  
   try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
+    // Hash password with defined salt rounds
+    this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
     next();
   } catch (error) {
     next(error as Error);
@@ -200,35 +197,40 @@ userSchema.pre(/^find/, function (this: Query<any, any>, next) {
 
 // --- Instance Methods ---
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+  // Ensure password is selected for comparison
+  if (!this.password) {
+    const user = await this.constructor.findById(this._id).select('+password');
+    if (!user) return false;
+    return bcrypt.compare(candidatePassword, user.password);
+  }
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+userSchema.methods.setNewPassword = async function(newPassword: string): Promise<void> {
+  this.password = newPassword; // Will be hashed by pre-save hook
+  this.passwordResetToken = undefined;
+  this.passwordResetExpires = undefined;
+  await this.save();
 };
 
 userSchema.methods.generatePasswordResetToken = function (): string {
   const resetToken = crypto.randomBytes(32).toString('hex');
   this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-  this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+  this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
   return resetToken;
 };
 
 userSchema.methods.generateEmailVerificationToken = function (): string {
   const verificationToken = crypto.randomBytes(32).toString('hex');
   this.emailVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
-  this.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  this.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
   return verificationToken;
-};
-
-// --- Static Methods ---
-/**
- * Static method to find a user by email or phone number.
- * This method does NOT perform any authentication.
- */
-userSchema.statics.findByIdentifier = async function (identifier: string): Promise<IUser | null> {
-  // Find user by email or phone
-  const user = await this.findOne({
+}; 
+ 
+userSchema.statics.findByIdentifier = function (identifier: string) {
+  return this.findOne({
     $or: [{ email: identifier }, { phoneNumber: identifier }],
   });
-
-  return user;
 };
 
-export const User = model<IUser, IUserModel>('User', userSchema);
+export const User = models.User || model<IUser, IUserModel>("User", userSchema);
