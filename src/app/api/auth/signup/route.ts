@@ -1,63 +1,119 @@
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/components/server/config/dbConnect';
-import { User } from '@/components/server/models/User.model';
-import { successResponse, errorResponse } from '@/components/server/lib/apiResponse';
-import { sendEmail } from '@/components/server/lib/emailService';
-import { emailVerificationEmail } from '@/components/server/templates/EmailTemplates';
+// ===================================================
+// src/app/api/auth/signup/route.ts
+// ===================================================
 
-export async function POST(request: NextRequest) {
+import { NextRequest } from "next/server";
+import dbConnect from "@/components/server/config/dbConnect";
+import { User } from "@/components/server/models/User.model";
+import { successResponse, errorResponse } from "@/components/server/utils/response";
+import { emailVerificationEmail } from "@/components/server/templates/EmailTemplates";
+import { sendEmail } from "@/components/server/lib/emailService";
+
+// ---------------------------------------------------
+// STRICT INPUT TYPE
+// ---------------------------------------------------
+
+interface SignupPayload {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+}
+
+// ---------------------------------------------------
+// VALIDATORS
+// ---------------------------------------------------
+
+const isValidEmail = (email: string): boolean =>
+  /^[\w.-]+@[\w.-]+\.\w{2,}$/.test(email);
+
+const isValidPhone = (phone: string): boolean =>
+  /^\+?[0-9]{6,14}$/.test(phone);
+
+// ---------------------------------------------------
+// POST — SIGNUP ROUTE
+// ---------------------------------------------------
+
+export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    
-    // Parse and validate input
-    const { name, email, password, phoneNumber } = await request.json();
-    
-    // Basic validation
-    if (!name || !email || !password || !phoneNumber) {
-      return errorResponse('All fields are required.', 400);
-    }
-    
-    // Check if user already exists
-    const existingUser = await User.findOne({ 
-      $or: [{ email }, { phoneNumber }] 
-    });
-    
-    if (existingUser) {
-      return errorResponse('User with this email or phone number already exists.', 409);
+
+    const body: SignupPayload = await req.json();
+    const { name, email, phoneNumber, password } = body;
+
+    // -------------------------------
+    // 1. REQUIRED FIELDS
+    // -------------------------------
+    if (!name || !email || !phoneNumber || !password) {
+      return errorResponse("All fields are required", 400);
     }
 
-    // Create user without manually hashing password (the model will handle it)
-    const user = new User({ name, email, password, phoneNumber });
-    
-    // Generate email verification token
-    const verificationToken = user.generateEmailVerificationToken();
-    
-    // Save user (password will be hashed by the pre-save hook)
+    if (!isValidEmail(email)) {
+      return errorResponse("Invalid email format", 400);
+    }
+
+    if (!isValidPhone(phoneNumber)) {
+      return errorResponse("Invalid phone number", 400);
+    }
+
+    if (password.length < 6) {
+      return errorResponse("Password must be at least 6 characters", 400);
+    }
+
+    // -------------------------------
+    // 2. DUPLICATE CHECK
+    // -------------------------------
+    const emailExists = await User.findOne({ email }).lean();
+    if (emailExists) {
+      return errorResponse("Email already exists", 409);
+    }
+
+    const phoneExists = await User.findOne({ phoneNumber }).lean();
+    if (phoneExists) {
+      return errorResponse("Phone number already exists", 409);
+    }
+
+    // -------------------------------
+    // 3. CREATE USER (password hashing auto)
+    // -------------------------------
+    const user = new User({
+      name,
+      email,
+      phoneNumber,
+      password,
+    });
+
+    // -------------------------------
+    // 4. USE MODEL INSTANCE METHOD
+    // -------------------------------
+    const rawToken = user.generateEmailVerificationToken();
     await user.save();
 
-    // Create verification link
-    const verificationLink = `${process.env.NEXTAUTH_URL}/verify-email?token=${verificationToken}`;
+    // -------------------------------
+    // 5. SEND EMAIL VERIFICATION
+    // -------------------------------
+    const verifyURL = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/verify-email?token=${rawToken}&email=${email}`;
 
-    try {
-      // Send verification email
-      await sendEmail({
-        to: email,
-        ...emailVerificationEmail({ name, verificationLink }),
-      });
-    } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
-      // Continue with registration even if email fails
-    }
+    const template = emailVerificationEmail({
+      name,
+      verificationLink: verifyURL,
+    });
 
-    return successResponse(
-      { 
-        message: 'User registered successfully. Please check your email to verify your account.',
-        userId: user._id
-      }, 
-      201
-    );
-  } catch (error: any) {
-    console.error('Registration error:', error);
-    return errorResponse(error.message || 'Registration failed', 500);
+    await sendEmail({
+      to: email,
+      subject: template.subject,
+      html: template.html,
+    });
+
+    // -------------------------------
+    // 6. SUCCESS RESPONSE
+    // -------------------------------
+    return successResponse("Signup successful! Verify your email.", {
+      userId: user._id,
+      email,
+    });
+  } catch (error) {
+    console.error("SIGNUP ERROR:", error);
+    return errorResponse("Internal Server Error", 500);
   }
 }

@@ -1,56 +1,253 @@
-// src/server/models/Product.model.ts
-import { Document, Schema, Types, model } from "mongoose";
+import {
+  Schema,
+  model,
+  Document,
+  Model,
+  Types,
+  models,
+} from "mongoose";
+import slugify from "slugify";
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+export enum ProductStatus {
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+  OUT_OF_STOCK = "out_of_stock",
+  DRAFT = "draft",
+}
+
+// ------------------------------------------------------
+// COLOR VARIANT INTERFACE
+// ------------------------------------------------------
+
+export interface IColorVariant {
+  name: string;          // e.g., Red, Blue
+  hex?: string;          // e.g., #FF0000
+  images: string[];      // color-specific images
+}
+
+// ------------------------------------------------------
+// MAIN PRODUCT INTERFACE
+// ------------------------------------------------------
 
 export interface IProduct extends Document {
   name: string;
   slug: string;
+
   description: string;
   basePrice: number;
   discountPrice?: number;
+
   sku: string;
   stock: number;
-  commissionPercent: number; // প্রোডাক্টটির ডিফল্ট কমিশন হার
+
+  commissionPercent: number;
+
   category: Types.ObjectId;
   tags: Types.ObjectId[];
-  images: string[];
-  status: "active" | "inactive" | "out_of_stock" | "draft";
+
+  images: string[];            // default images
+  colors?: IColorVariant[];    // color variants
+  sizes?: string[];            // e.g., ["S", "M", "L", "XL"]
+  weight?: number;             // optional
+
+  status: ProductStatus;
+
   metaTitle?: string;
   metaDescription?: string;
+
+  finalPrice: number;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const productSchema = new Schema<IProduct>(
+export type ProductModelType = Model<IProduct, Record<string, never>>;
+
+// ------------------------------------------------------
+// COLOR VARIANT SUBSCHEMA
+// ------------------------------------------------------
+
+const colorVariantSchema = new Schema<IColorVariant>(
   {
-    // ... (অন্যান্য ফিল্ড আগের মতোই)
     name: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true },
-    description: { type: String, required: true },
-    basePrice: { type: Number, required: true, min: 0 },
-    discountPrice: { type: Number, min: 0 },
-    sku: { type: String, required: true, unique: true },
-    stock: { type: Number, required: true, min: 0, default: 0 },
-    commissionPercent: { type: Number, default: 0, min: 0, max: 100 }, // এই ফিল্ডটি যোগ করুন
-    category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
-    tags: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
-    images: [{ type: String }],
+    hex: { type: String }, // optional
+    images: [{ type: String, required: true }],
+  },
+  { _id: false }
+);
+
+// ------------------------------------------------------
+// PRODUCT SCHEMA
+// ------------------------------------------------------
+
+const productSchema = new Schema<IProduct, ProductModelType>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 2,
+      maxlength: 200,
+    },
+
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
+
+    description: {
+      type: String,
+      required: true,
+      minlength: 10,
+    },
+
+    basePrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    discountPrice: {
+      type: Number,
+      min: 0,
+    },
+
+    sku: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+
+    stock: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+
+    commissionPercent: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+
+    category: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+      index: true,
+    },
+
+    tags: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Tag",
+      },
+    ],
+
+    images: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
+    sizes: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
+    colors: [colorVariantSchema], // <-- color-level images
+
+    weight: {
+      type: Number,
+      min: 0,
+    },
+
     status: {
       type: String,
-      enum: ["active", "inactive", "out_of_stock", "draft"],
-      default: "draft",
+      enum: Object.values(ProductStatus),
+      default: ProductStatus.DRAFT,
+      index: true,
     },
+
     metaTitle: { type: String },
     metaDescription: { type: String },
   },
-  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
 
+// ------------------------------------------------------
+// VIRTUALS
+// ------------------------------------------------------
+
 productSchema.virtual("finalPrice").get(function (this: IProduct) {
-  return this.discountPrice && this.discountPrice < this.basePrice
-    ? this.discountPrice
-    : this.basePrice;
+  if (this.discountPrice && this.discountPrice < this.basePrice) {
+    return this.discountPrice;
+  }
+  return this.basePrice;
 });
+
+// ------------------------------------------------------
+// INDEXES
+// ------------------------------------------------------
+
 productSchema.index({ name: "text", description: "text" });
 productSchema.index({ slug: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ status: 1 });
+productSchema.index({ commissionPercent: -1 });
 
-export const Product = model<IProduct>("Product", productSchema);
+// ------------------------------------------------------
+// PRE-SAVE — AUTO SLUG
+// ------------------------------------------------------
+
+productSchema.pre("save", async function (next) {
+  if (!this.slug) {
+    const baseSlug = slugify(this.name, { lower: true, strict: true });
+    let uniqueSlug = baseSlug;
+    let counter = 2;
+
+    const existing = await (this.constructor as ProductModelType).findOne({
+      slug: uniqueSlug,
+    });
+
+    if (existing) {
+      while (
+        await (this.constructor as ProductModelType).findOne({
+          slug: `${baseSlug}-${counter}`,
+        })
+      ) {
+        counter += 1;
+      }
+      uniqueSlug = `${baseSlug}-${counter}`;
+    }
+
+    this.slug = uniqueSlug;
+  }
+  next();
+});
+
+// ------------------------------------------------------
+// EXPORT
+// ------------------------------------------------------
+
+export const Product =
+  (models.Product as ProductModelType) ||
+  model<IProduct, ProductModelType>("Product", productSchema);

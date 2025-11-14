@@ -18,6 +18,7 @@
     "lib": "@/components/lib",
     "hooks": "@/components/hooks",
     "server":"@/server",
+    "contexts":"@/contexts"
 
   },
   "registries": {}

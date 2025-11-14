@@ -1,5 +1,35 @@
-// src/server/models/Order.model.ts
-import { Document, Schema, Types, model } from "mongoose";
+import {
+  Schema,
+  model,
+  Document,
+  Types,
+  Model,
+  models,
+} from "mongoose";
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+export enum OrderStatus {
+  PENDING = "pending",
+  CONFIRMED = "confirmed",
+  PROCESSING = "processing",
+  SHIPPED = "shipped",
+  DELIVERED = "delivered",
+  CANCELLED = "cancelled",
+}
+
+export enum PaymentStatus {
+  PENDING = "pending",
+  PAID = "paid",
+  FAILED = "failed",
+  REFUNDED = "refunded",
+}
+
+// ------------------------------------------------------
+// INTERFACES
+// ------------------------------------------------------
 
 export interface IOrderItem {
   product: Types.ObjectId;
@@ -11,110 +41,182 @@ export interface IOrder extends Document {
   user: Types.ObjectId;
   orderNumber: string;
 
-  // --- অ্যাফিলিয়েট ট্র্যাকিং ---
-  affiliate?: Types.ObjectId;
-  link?: Types.ObjectId; // কোন লিঙ্ক থেকে অর্ডার এসেছে
-  affiliateCommission: number; // এই অর্ডারের জন্য মোট কমিশন
+  // --- Affiliate Tracking ---
+  affiliate?: Types.ObjectId | null;
+  link?: Types.ObjectId | null;
+  affiliateCommission: number;
 
-  // --- অর্ডার ডিটেইলস ---
+  // --- Items ---
   items: IOrderItem[];
   subtotal: number;
   shippingCost: number;
   totalAmount: number;
+
   shippingAddress: Types.ObjectId;
-  status:
-    | "pending"
-    | "confirmed"
-    | "processing"
-    | "shipped"
-    | "delivered"
-    | "cancelled";
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+
   note?: string;
   customerPhone: string;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const orderItemSchema = new Schema<IOrderItem>({
-  product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
-  quantity: { type: Number, required: true, min: 1 },
-  price: { type: Number, required: true, min: 0 },
-});
+// No instance methods → no empty interface needed
+export type OrderModelType = Model<IOrder, Record<string, never>>;
 
-const orderSchema = new Schema<IOrder>(
+// ------------------------------------------------------
+// ORDER ITEM SCHEMA
+// ------------------------------------------------------
+
+const orderItemSchema = new Schema<IOrderItem>(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    orderNumber: { type: String, required: true, unique: true },
-    affiliate: { type: Schema.Types.ObjectId, ref: "Affiliate" },
-    link: { type: Schema.Types.ObjectId, ref: "Link" },
-    affiliateCommission: { type: Number, default: 0 },
-    items: [orderItemSchema],
+    product: {
+      type: Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+    quantity: { type: Number, required: true, min: 1 },
+    price: { type: Number, required: true, min: 0 },
+  },
+  { _id: false }
+);
+
+// ------------------------------------------------------
+// MAIN ORDER SCHEMA
+// ------------------------------------------------------
+
+const orderSchema = new Schema<IOrder, OrderModelType>(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
+    orderNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+
+    affiliate: {
+      type: Schema.Types.ObjectId,
+      ref: "Affiliate",
+      default: null,
+    },
+
+    link: {
+      type: Schema.Types.ObjectId,
+      ref: "Link",
+      default: null,
+    },
+
+    affiliateCommission: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    items: {
+      type: [orderItemSchema],
+      required: true,
+    },
+
     subtotal: { type: Number, required: true },
     shippingCost: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
+
     shippingAddress: {
       type: Schema.Types.ObjectId,
       ref: "Address",
       required: true,
     },
+
     status: {
       type: String,
-      enum: [
-        "pending",
-        "confirmed",
-        "processing",
-        "shipped",
-        "delivered",
-        "cancelled",
-      ],
-      default: "pending",
+      enum: Object.values(OrderStatus),
+      default: OrderStatus.PENDING,
+      index: true,
     },
+
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed", "refunded"],
-      default: "pending",
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.PENDING,
+      index: true,
     },
+
     note: { type: String },
     customerPhone: { type: String, required: true },
   },
   { timestamps: true }
 );
 
-// অর্ডার নম্বর জেনারেট করার মিডলওয়্যার
+// ------------------------------------------------------
+// INDEXES
+// ------------------------------------------------------
+
+orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ user: 1 });
+orderSchema.index({ affiliate: 1 });
+orderSchema.index({ status: 1 });
+
+// ------------------------------------------------------
+// PRE-SAVE — AUTO ORDER NUMBER
+// ------------------------------------------------------
+
 orderSchema.pre("save", async function (next) {
   if (this.isNew && !this.orderNumber) {
-    const count = await this.constructor.countDocuments();
-    this.orderNumber = `ORD-${String(count + 1).padStart(5, "0")}`;
+    const count = await (this.constructor as OrderModelType).countDocuments();
+    this.orderNumber = `ORD-${String(count + 1).padStart(6, "0")}`;
   }
   next();
 });
 
-// অর্ডার ডেলিভার হলে স্বয়ংক্রিয়ভাবে কমিশন যোগ করার মিডলওয়্যার
-orderSchema.post("save", async function (doc) {
-  if (
-    doc.isModified("status") &&
-    doc.status === "delivered" &&
-    doc.affiliate &&
-    doc.affiliateCommission > 0
-  ) {
-    const { Wallet } = await import("./Wallet.model");
-    const { Affiliate } = await import("./Affiliate.model");
-    const { Link } = await import("./Link.model");
+// ------------------------------------------------------
+// POST-SAVE — AUTO COMMISSION & WALLET LOGIC
+// ------------------------------------------------------
 
-    const wallet = await Wallet.findByAffiliate(doc.affiliate);
-    if (wallet) {
-      await wallet.addHeldCommission(doc.affiliateCommission, doc._id);
-      console.log(
-        `Commission of ${doc.affiliateCommission} held for affiliate ${doc.affiliate}`
-      );
-    }
-    // অ্যাফিলিয়েট এবং লিঙ্কের কনভার্সন কাউন্টার আপডেট করুন
-    await Affiliate.findByIdAndUpdate(doc.affiliate, {
-      $inc: { totalConversions: 1, totalEarnings: doc.affiliateCommission },
-    });
-    if (doc.link) {
-      await Link.findByIdAndUpdate(doc.link, { $inc: { conversions: 1 } });
-    }
+orderSchema.post("save", async function (doc) {
+  const delivered =
+    doc.status === OrderStatus.DELIVERED &&
+    doc.affiliate &&
+    doc.affiliateCommission > 0;
+
+  if (!delivered) return;
+
+  // Dynamic import to avoid circular dependency
+  const { Wallet } = await import("./Wallet.model");
+  const { Affiliate } = await import("./Affiliate.model");
+  const { Link } = await import("./Link.model");
+
+  // Add held commission
+  const affiliateId = doc.affiliate!; // narrowed by `delivered` check above
+  const wallet = await Wallet.findByAffiliate(affiliateId);
+
+  if (wallet) {
+    await wallet.addHeldCommission(doc.affiliateCommission, doc._id as Types.ObjectId);
+  }
+
+  // Affiliate stats update
+  await Affiliate.findByIdAndUpdate(affiliateId, {
+    $inc: { totalConversions: 1, totalEarnings: doc.affiliateCommission },
+  });
+
+  // Conversion count update
+  if (doc.link) {
+    await Link.findByIdAndUpdate(doc.link, { $inc: { conversions: 1 } });
   }
 });
 
-export const Order = model<IOrder>("Order", orderSchema);
+// ------------------------------------------------------
+// EXPORT MODEL
+// ------------------------------------------------------
+
+export const Order =
+  (models.Order as OrderModelType) ||
+  model<IOrder, OrderModelType>("Order", orderSchema);

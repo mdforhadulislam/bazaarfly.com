@@ -1,41 +1,70 @@
+// ===================================================
+// src/app/api/auth/verify-email/route.ts
+// ===================================================
+
 import { NextRequest } from "next/server";
 import crypto from "crypto";
 import dbConnect from "@/components/server/config/dbConnect";
 import { User } from "@/components/server/models/User.model";
-import { successResponse, errorResponse } from "@/components/server/lib/apiResponse";
+import { successResponse, errorResponse } from "@/components/server/utils/response";
 
-export async function POST(request: NextRequest) {
+// ---------------------------------------------------
+// POST — VERIFY EMAIL
+// ---------------------------------------------------
+
+export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const { token } = await request.json();
 
-    if (!token) {
-      return errorResponse("Verification token is required.");
+    const body = await req.json();
+    const token: string | undefined = body?.token;
+
+    // -----------------------------------
+    // 1. Validate input
+    // -----------------------------------
+    if (!token || typeof token !== "string") {
+      return errorResponse("Verification token is required", 400);
     }
 
-    // 🔐 Hash the token before lookup
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    // -----------------------------------
+    // 2. Hash token (matches User model)
+    // -----------------------------------
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
 
-    // ✅ Find user with valid (non-expired) token
+    // -----------------------------------
+    // 3. Find matching user
+    // -----------------------------------
     const user = await User.findOne({
       emailVerificationToken: hashedToken,
-      emailVerificationExpires: { $gt: new Date() },
+      emailVerificationExpires: { $gt: new Date() }, // not expired
     });
 
     if (!user) {
-      return errorResponse("Token is invalid or has expired.");
+      return errorResponse(
+        "Invalid or expired verification token",
+        400
+      );
     }
 
-    // ✅ Mark as verified and clear token fields
+    // -----------------------------------
+    // 4. Mark email as verified
+    // -----------------------------------
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    return successResponse({
-      message: "Email verified successfully. You can now sign in.",
-    });
-  } catch (error: any) {
-    return errorResponse(error.message || "Internal server error", 500);
+    // -----------------------------------
+    // 5. Send success response
+    // -----------------------------------
+    return successResponse(
+      "Email verified successfully! You can now sign in."
+    );
+  } catch (error) {
+    console.error("EMAIL VERIFY ERROR:", error);
+    return errorResponse("Internal Server Error", 500);
   }
 }

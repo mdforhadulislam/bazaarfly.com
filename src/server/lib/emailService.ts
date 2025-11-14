@@ -1,44 +1,75 @@
 // src/server/lib/emailService.ts
-import nodemailer from 'nodemailer';
 
-// --- ট্রান্সপোর্টার তৈরি করার ফাংশন ---
-// এটি আপনার ইমেল প্রোভাইডার (Gmail, SendGrid, ইত্যাদি) এর সাথে সংযোগ স্থাপন করবে
-const createTransporter = () => {
-  return nodemailer.createTransport({
+import nodemailer, { Transporter } from "nodemailer";
+
+// ---------------------------------------------
+// ENVIRONMENT VALIDATION
+// ---------------------------------------------
+const requiredEnv = ["EMAIL_HOST", "EMAIL_PORT", "EMAIL_USER", "EMAIL_PASS"];
+
+function validateEnv(): void {
+  const missing = requiredEnv.filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required email environment variables: ${missing.join(", ")}`
+    );
+  }
+}
+
+// ---------------------------------------------
+// SINGLE TRANSPORTER INSTANCE (CACHED)
+// ---------------------------------------------
+let transporter: Transporter | null = null;
+
+function getTransporter(): Transporter {
+  if (transporter) return transporter;
+
+  validateEnv();
+
+  transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT || "587"),
-    secure: process.env.EMAIL_PORT === "465",
+    port: Number(process.env.EMAIL_PORT ?? 587),
+    secure: process.env.EMAIL_PORT === "465", // SSL only when port is 465
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
-};
 
-// --- মূল ইমেল পাঠানোর ফাংশন ---
+  return transporter;
+}
+
+// ---------------------------------------------
+// MAIN SEND EMAIL FUNCTION
+// ---------------------------------------------
+export interface EmailPayload {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+}
+
 export const sendEmail = async ({
   to,
   subject,
   html,
   text,
-}: {
-  to: string | string[];
-  subject: string;
-  html: string;
-  text?: string;
-}) => {
+}: EmailPayload): Promise<void> => {
   try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: `"Bazaarfly" <${process.env.EMAIL_USER}>`, // প্রেরকের নাম ও ইমেল
+    const mailer = getTransporter();
+
+    await mailer.sendMail({
+      from: `"Bazaarfly" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,
-      text,
+      text: text ?? html.replace(/<[^>]+>/g, ""), // fallback plain text
     });
-    console.log(`Email sent successfully to ${to}`);
-  } catch (error) {
-    console.error('Failed to send email:', error);
-    throw new Error('Could not send email');
+
+    console.log(`📧 Email sent successfully: ${to}`);
+  } catch (err) {
+    console.error("❌ Failed to send email:", err);
+    throw new Error("Could not send email");
   }
 };

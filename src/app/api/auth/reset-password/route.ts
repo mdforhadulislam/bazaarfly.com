@@ -1,43 +1,77 @@
-import dbConnect from "@/components/server/config/dbConnect";
-import {
-  errorResponse,
-  successResponse,
-} from "@/components/server/lib/apiResponse";
-import { User } from "@/components/server/models/User.model";
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
-import { NextRequest } from "next/server";
+// ===================================================
+// src/app/api/auth/reset-password/route.ts
+// ===================================================
 
-export async function POST(request: NextRequest) {
+import { NextRequest } from "next/server";
+import crypto from "crypto";
+import dbConnect from "@/components/server/config/dbConnect";
+import { User } from "@/components/server/models/User.model";
+import { successResponse, errorResponse } from "@/components/server/utils/response";
+
+// ---------------------------------------------------
+// STRICT TYPE
+// ---------------------------------------------------
+
+interface ResetPasswordPayload {
+  token: string;
+  email: string;
+  newPassword: string;
+}
+
+// ---------------------------------------------------
+// POST — RESET PASSWORD
+// ---------------------------------------------------
+
+export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const { token, newPassword } = await request.json();
 
-    if (!token || !newPassword) {
-      return errorResponse('Reset token and new password are required.', 400);
+    const body: ResetPasswordPayload = await req.json();
+    const { token, email, newPassword } = body;
+
+    // -------------------------
+    // 1. Validate Input
+    // -------------------------
+    if (!token || !email || !newPassword) {
+      return errorResponse("Missing required fields", 400);
     }
 
-    // Hash the incoming token to match the one in the database
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    if (newPassword.length < 6) {
+      return errorResponse("Password must be at least 6 characters", 400);
+    }
 
-    // Find user by the hashed token and ensure it hasn't expired
+    // -------------------------
+    // 2. Hash token for lookup
+    // -------------------------
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    // -------------------------
+    // 3. Find user with valid token
+    // -------------------------
     const user = await User.findOne({
+      email,
       passwordResetToken: hashedToken,
-      passwordResetExpires: { $gt: Date.now() },
-    }).select('+passwordResetToken +passwordResetExpires');
+      passwordResetExpires: { $gt: new Date() },
+    });
 
     if (!user) {
-      return errorResponse('Token is invalid or has expired.', 400);
+      return errorResponse("Invalid or expired reset token", 400);
     }
 
-    // Use the instance method to set the new password
-    // This method hashes the password and clears the reset token fields
+    // -------------------------
+    // 4. Update password (User Model method)
+    // -------------------------
     await user.setNewPassword(newPassword);
 
-    return successResponse({ message: 'Password has been reset successfully. You can now sign in with your new password.' });
-
-  } catch (error: any) {
-    console.error('Password Reset Confirmation Error:', error);
-    return errorResponse(error.message || 'An internal server error occurred.', 500);
+    // -------------------------
+    // 5. Success response
+    // -------------------------
+    return successResponse("Password has been reset successfully");
+  } catch (error) {
+    console.error("RESET PASSWORD ERROR:", error);
+    return errorResponse("Internal Server Error", 500);
   }
 }

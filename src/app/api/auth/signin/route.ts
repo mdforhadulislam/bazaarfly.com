@@ -1,123 +1,119 @@
-import { NextRequest } from 'next/server';
-import dbConnect from '@/components/server/config/dbConnect';
-import { User } from '@/components/server/models/User.model';
-import { successResponse, errorResponse } from '@/components/server/lib/apiResponse';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+// ===================================================
+// src/app/api/auth/signin/route.ts
+// ===================================================
 
-// --- Constants for Security ---
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCK_TIME = 2 * 60 * 60 * 1000; // 2 hours
+import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/components/server/config/dbConnect";
+import { User } from "@/components/server/models/User.model";
+import { successResponse, errorResponse } from "@/components/server/utils/response";
+import { generateAccessToken, generateRefreshToken } from "@/components/server/utils/token";
 
-export async function POST(request: NextRequest) {
+// ---------------------------------------------------
+// STRICT INPUT TYPE
+// ---------------------------------------------------
+
+interface SigninPayload {
+  identifier: string; // email or phone
+  password: string;
+}
+
+// ---------------------------------------------------
+// POST — SIGNIN ROUTE
+// ---------------------------------------------------
+
+export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const { identifier, password } = await request.json();
 
-    // 1. Basic Input Validation
+    const body: SigninPayload = await req.json();
+    const { identifier, password } = body;
+
     if (!identifier || !password) {
-      return errorResponse('Email/Phone number and password are required.', 400);
+      return errorResponse("Identifier & password are required", 400);
     }
 
-    // 2. Find user and explicitly select password and security fields
-    const user = await User.findOne({
-      $or: [{ email: identifier }, { phoneNumber: identifier }],
-    })
-      .select('+password +loginAttempts +lockUntil +refreshToken') // Select fields needed for security
-      .exec();
+    const user = await User.findByIdentifier(identifier).select("+password");
 
-    // 3. Handle non-existent user
     if (!user) {
-      // Use a generic error message to prevent user enumeration attacks
-      return errorResponse('Invalid credentials.', 401);
+      return errorResponse("Invalid credentials", 401);
     }
 
-    // 4. Handle locked account
-    if (user.isLocked) {
-      return errorResponse('Account is temporarily locked due to too many failed login attempts. Please try again later.', 423);
+    // -----------------------------
+    // ACCOUNT LOCK CHECK
+    // -----------------------------
+    if (user.lockUntil && user.lockUntil > new Date()) {
+      return errorResponse("Account temporarily locked. Try again later.", 403);
     }
 
-    // 5. Compare password
+    // -----------------------------
+    // PASSWORD CHECK
+    // -----------------------------
     const isMatch = await user.comparePassword(password);
 
-    // 6. Handle incorrect password
     if (!isMatch) {
-      user.loginAttempts = (user.loginAttempts || 0) + 1;
-      
-      // Lock the account if max attempts is reached
-      if (user.loginAttempts >= MAX_LOGIN_ATTEMPTS && !user.isLocked) {
-        user.lockUntil = new Date(Date.now() + LOCK_TIME);
+      user.loginAttempts += 1;
+
+      if (user.loginAttempts >= 8) {
+        user.lockUntil = new Date(Date.now() + 10 * 60 * 1000);
       }
-      
+
       await user.save();
-      return errorResponse('Invalid credentials.', 401);
+      return errorResponse("Invalid credentials", 401);
     }
 
-    // 7. Check if email is verified
-    if (!user.isEmailVerified) {
-      return errorResponse('Please verify your email before signing in.', 403);
-    }
-
-    // --- AT THIS POINT, LOGIN IS SUCCESSFUL ---
-
-    // 8. Reset login attempts on successful login
+    // -----------------------------
+    // RESET ATTEMPTS ON SUCCESS
+    // -----------------------------
     user.loginAttempts = 0;
     user.lockUntil = undefined;
 
-    // 9. Update last login info
     user.lastLogin = new Date();
-    // Get IP address, considering proxies
-    const forwarded = request.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : request.ip;
-    user.lastLoginIP = ip;
+    user.lastLoginIP = req.headers.get("x-forwarded-for") ?? "unknown";
 
-    // 10. Generate tokens
-    const accessToken = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = crypto.randomBytes(64).toString('hex');
-    user.refreshToken = refreshToken;
-
-    // 11. Save user with new session info
     await user.save();
 
-    // 12. Prepare response and set cookies
-    const response = successResponse({
-      message: 'Signin successful',
-      user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email, 
+    // -----------------------------
+    // GENERATE TOKENS
+    // -----------------------------
+    const accessToken = generateAccessToken(user._id.toString());
+    const refreshToken = generateRefreshToken(user._id.toString());
+
+    // -----------------------------
+    // SET COOKIES
+    // -----------------------------
+    const response = NextResponse.json(
+      successResponse("Login successful", {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        avatar: user.avatar,
         role: user.role,
-        isEmailVerified: user.isEmailVerified
-      }
+        isEmailVerified: user.isEmailVerified,
+      })
+    );
+
+    // Access Token cookie
+    response.cookies.set("access_token", accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24, // 1 day
+      path: "/",
     });
 
-    // Set Access Token Cookie
-    response.cookies.set('accessToken', accessToken, {
+    // Refresh Token cookie
+    response.cookies.set("refresh_token", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60, // 15 minutes
-      path: '/',
-    });
-
-    // Set Refresh Token Cookie
-    response.cookies.set('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
+      secure: true,
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/",
     });
 
     return response;
-
-  } catch (error: any) {
-    console.error('Signin Error:', error);
-    return errorResponse(error.message || 'An internal server error occurred.', 500);
+  } catch (error) {
+    console.error("SIGNIN ERROR:", error);
+    return errorResponse("Internal Server Error", 500);
   }
 }

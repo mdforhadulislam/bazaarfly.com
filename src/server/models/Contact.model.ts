@@ -1,68 +1,112 @@
-// src/server/models/Contact.model.ts
-import { Document, Schema, model } from "mongoose";
+import { Schema, model, Document, Model, models } from "mongoose";
 
-/**
- * @interface IContact
- * Represents a contact form submission from a user.
- */
+// --------------------------------------------------
+// INTERFACE
+// --------------------------------------------------
+
 export interface IContact extends Document {
   name: string;
   email: string;
-  subject: string;
+  phone?: string;
   message: string;
-  status: "new" | "read" | "replied";
+
+  status: "pending" | "seen" | "replied";
+  adminNote?: string;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// --- Contact Schema ---
-const contactSchema = new Schema<IContact>(
+export interface IContactStatics {
+  markSeen(id: string): Promise<void>;
+  reply(id: string, note: string): Promise<void>;
+}
+
+export type ContactModelType = Model<IContact> & IContactStatics;
+
+// --------------------------------------------------
+// SCHEMA
+// --------------------------------------------------
+
+const contactSchema = new Schema<IContact, ContactModelType>(
   {
     name: {
       type: String,
-      required: [true, "Name is required."],
+      required: true,
       trim: true,
-      maxlength: [100, "Name cannot exceed 100 characters."],
+      minlength: 2,
+      maxlength: 100,
     },
+
     email: {
       type: String,
-      required: [true, "Email is required."],
+      required: true,
       trim: true,
       lowercase: true,
       match: [
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-        "Please fill a valid email address.",
+        "Invalid email address",
       ],
     },
-    subject: {
+
+    phone: {
       type: String,
-      required: [true, "Subject is required."],
       trim: true,
-      maxlength: [255, "Subject cannot exceed 255 characters."],
+      match: [/^\+?[0-9]{7,15}$/, "Invalid phone number"],
     },
+
     message: {
       type: String,
-      required: [true, "Message cannot be empty."],
+      required: true,
       trim: true,
+      minlength: 5,
     },
+
     status: {
       type: String,
-      enum: {
-        values: ["new", "read", "replied"],
-        message: "Status must be either new, read, or replied.",
-      },
-      default: "new",
+      enum: ["pending", "seen", "replied"],
+      default: "pending",
+      index: true,
+    },
+
+    adminNote: {
+      type: String,
+      trim: true,
     },
   },
-  {
-    // স্বয়ংক্রিয়ভাবে createdAt এবং updatedAt ফিল্ড যোগ করে
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// --- Indexes for Performance ---
-// অ্যাডমিন যাতে সহজে স্ট্যাটাস অনুযায়ী মেসেজ খুঁজে পায় (যেমন: সব 'new' মেসেজ)
+// --------------------------------------------------
+// INDEXES
+// --------------------------------------------------
+
+contactSchema.index({ email: 1 });
 contactSchema.index({ status: 1 });
-// তারিখ অনুযায়ী সাজানোর জন্য
 contactSchema.index({ createdAt: -1 });
 
-// --- Export the Model ---
-export const Contact = model<IContact>("Contact", contactSchema);
+// --------------------------------------------------
+// STATIC METHODS
+// --------------------------------------------------
+
+contactSchema.statics.markSeen = async function (id: string): Promise<void> {
+  await this.findByIdAndUpdate(id, { status: "seen" });
+};
+
+contactSchema.statics.reply = async function (
+  id: string,
+  note: string
+): Promise<void> {
+  await this.findByIdAndUpdate(id, {
+    status: "replied",
+    adminNote: note,
+  });
+};
+
+// --------------------------------------------------
+// EXPORT MODEL
+// --------------------------------------------------
+
+export const Contact =
+  (models.Contact as ContactModelType) ||
+  model<IContact, ContactModelType>("Contact", contactSchema);
