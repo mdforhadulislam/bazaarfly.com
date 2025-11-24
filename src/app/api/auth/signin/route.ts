@@ -81,8 +81,7 @@ export async function POST(req: NextRequest) {
     // -----------------------------
     // SET COOKIES
     // -----------------------------
-    const response = NextResponse.json(
-      successResponse("Login successful", {
+    const response =  successResponse("Login successful", {
         id: user._id,
         name: user.name,
         email: user.email,
@@ -91,7 +90,7 @@ export async function POST(req: NextRequest) {
         role: user.role,
         isEmailVerified: user.isEmailVerified,
       })
-    );
+  
 
     // Access Token cookie
     response.cookies.set("access_token", accessToken, {

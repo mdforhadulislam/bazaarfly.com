@@ -1,16 +1,16 @@
-import { NextRequest } from "next/server"; 
+import { NextRequest } from "next/server";
 import { parseUser } from "./parseUser";
 import {
   unauthorizedResponse,
   forbiddenResponse,
 } from "@/components/server/utils/response";
 
-export const checkAdmin = async (req: NextRequest) => {
+export const checkRole = async (req: NextRequest, roles: string[]) => {
   const user = await parseUser(req);
   if (!user) return unauthorizedResponse("Unauthorized");
 
-  if (user.role !== "admin") {
-    return forbiddenResponse("Admin access required");
+  if (!roles.includes(user.role)) {
+    return forbiddenResponse("You do not have permission");
   }
 
   return user;
