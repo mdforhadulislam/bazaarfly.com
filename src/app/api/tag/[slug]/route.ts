@@ -6,7 +6,7 @@ import { NextRequest } from "next/server";
 import dbConnect from "@/components/server/config/dbConnect";
 import { Tag } from "@/components/server/models/Tag.model";
 import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { requireAdmin } from "@/components/server/middleware/checkAdmin";
+import { checkAdmin } from "@/components/server/middleware/checkAdmin";
 
 interface Params {
   slug: string;
@@ -38,7 +38,7 @@ export async function PUT(
   context: { params: Params }
 ) {
   await dbConnect();
-  const admin = await requireAdmin(request);
+  const admin = await checkAdmin(request);
   if (!admin) return errorResponse("Unauthorized", 401);
 
   const { slug } = context.params;
@@ -68,7 +68,7 @@ export async function DELETE(
   context: { params: Params }
 ) {
   await dbConnect();
-  const admin = await requireAdmin(request);
+  const admin = await checkAdmin(request);
   if (!admin) return errorResponse("Unauthorized", 401);
 
   const { slug } = context.params;

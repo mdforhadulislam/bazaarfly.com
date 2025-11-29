@@ -1,51 +1,57 @@
 // ===================================================
-// src/app/api/category/[slug]/route.ts
+// CATEGORY — GET | UPDATE | DELETE | UPLOAD (PATCH)
+// Single Category by Slug
 // ===================================================
 
-import { NextRequest } from "next/server";
+import { cloudinaryConfig } from "@/components/server/config/cloudinary";
 import dbConnect from "@/components/server/config/dbConnect";
+import { checkAdmin } from "@/components/server/middleware/checkAdmin";
 import { Category } from "@/components/server/models/Category.model";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { requireAdmin } from "@/components/server/middleware/checkAdmin";
-import {cloudinaryConfig} from "@/components/server/config/cloudinary";
+import {
+  errorResponse,
+  successResponse,
+} from "@/components/server/utils/response";
+import { NextRequest } from "next/server";
 
+const cloudinary = cloudinaryConfig();
+
+// -----------------------------------------
+// PARAM TYPE
+// -----------------------------------------
 interface Params {
   slug: string;
 }
 
-const cloudinary = cloudinaryConfig();
-
-// ---------------------------------------------------
-// PUBLIC — GET CATEGORY BY SLUG
-// ---------------------------------------------------
-
-export async function GET(
-  req: NextRequest,
-  context: { params: Params }
-) {
+// ===================================================
+// GET — PUBLIC
+// ===================================================
+export async function GET(req: NextRequest, context: { params: Params }) {
   await dbConnect();
+
   const { slug } = context.params;
 
-  const category = await Category.findOne({ slug }).lean();
+  const category = await Category.findOne({ slug });
   if (!category) return errorResponse("Category not found", 404);
 
   return successResponse("Category fetched", category);
 }
 
-// ---------------------------------------------------
-// ADMIN — UPDATE CATEGORY
-// ---------------------------------------------------
-
-export async function PUT(
-  req: NextRequest,
-  context: { params: Params }
-) {
+// ===================================================
+// PUT — ADMIN UPDATE WHOLE CATEGORY
+// ===================================================
+export async function PUT(req: NextRequest, context: { params: Params }) {
   await dbConnect();
-  const admin = await requireAdmin(req);
+
+  const admin = await checkAdmin(req);
   if (!admin) return errorResponse("Unauthorized", 401);
 
   const { slug } = context.params;
   const updates = await req.json();
+
+  // Auto slug update if name changed
+  if (updates.name) {
+    updates.slug = await Category.generateSlug(updates.name);
+  }
 
   const updated = await Category.findOneAndUpdate({ slug }, updates, {
     new: true,
@@ -56,39 +62,14 @@ export async function PUT(
   return successResponse("Category updated", updated);
 }
 
-// ---------------------------------------------------
-// ADMIN — DELETE CATEGORY
-// ---------------------------------------------------
-
-export async function DELETE(
-  req: NextRequest,
-  context: { params: Params }
-) {
+// ===================================================
+// PATCH — ADMIN (Upload image | icon | banner)
+// /api/category/[slug]?type=image
+// ===================================================
+export async function PATCH(req: NextRequest, context: { params: Params }) {
   await dbConnect();
 
-  const admin = await requireAdmin(req);
-  if (!admin) return errorResponse("Unauthorized", 401);
-
-  const deleted = await Category.findOneAndDelete({
-    slug: context.params.slug,
-  });
-
-  if (!deleted) return errorResponse("Category not found", 404);
-
-  return successResponse("Category deleted successfully");
-}
-
-// ---------------------------------------------------
-// ADMIN — PATCH IMAGE UPLOAD (image | icon | banner)
-// ---------------------------------------------------
-
-export async function PATCH(
-  req: NextRequest,
-  context: { params: Params }
-) {
-  await dbConnect();
-
-  const admin = await requireAdmin(req);
+  const admin = await checkAdmin(req);
   if (!admin) return errorResponse("Unauthorized", 401);
 
   const { slug } = context.params;
@@ -98,6 +79,7 @@ export async function PATCH(
     return errorResponse("Invalid type parameter", 400);
   }
 
+  // Read File
   const form = await req.formData();
   const file = form.get("file") as File | null;
 
@@ -105,20 +87,19 @@ export async function PATCH(
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
+  // Upload to Cloudinary
   const uploadResult = await new Promise((resolve, reject) => {
     cloudinary.uploader
-      .upload_stream(
-        { folder: "bazaarfly/category" },
-        (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
-        }
-      )
+      .upload_stream({ folder: "bazaarfly/category" }, (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      })
       .end(buffer);
   });
 
   const url = (uploadResult as any).secure_url;
 
+  // Update category field (image/icon/banner)
   const updated = await Category.findOneAndUpdate(
     { slug },
     { [type]: url },
@@ -127,5 +108,23 @@ export async function PATCH(
 
   if (!updated) return errorResponse("Category not found", 404);
 
-  return successResponse("Category " + type + " updated", updated);
+  return successResponse(`Category ${type} updated`, updated);
+}
+
+// ===================================================
+// DELETE — ADMIN DELETE CATEGORY
+// ===================================================
+export async function DELETE(req: NextRequest, context: { params: Params }) {
+  await dbConnect();
+
+  const admin = await checkAdmin(req);
+  if (!admin) return errorResponse("Unauthorized", 401);
+
+  const { slug } = context.params;
+
+  const deleted = await Category.findOneAndDelete({ slug });
+
+  if (!deleted) return errorResponse("Category not found", 404);
+
+  return successResponse("Category deleted");
 }

@@ -1,50 +1,80 @@
-// ===================================================
-// src/app/api/category/route.ts
-// ===================================================
-
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/components/server/config/dbConnect";
 import { Category } from "@/components/server/models/Category.model";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { requireAdmin } from "@/components/server/middleware/checkAdmin";
+import {
+  successResponse,
+  errorResponse,
+  validationErrorResponse,
+} from "@/components/server/utils/response";
+import { checkAdmin } from "@/components/server/middleware/checkAdmin";
 
-// ---------------------------------------------------
-// PUBLIC — GET ALL CATEGORIES
-// ---------------------------------------------------
-
+// ===============================
+// GET — All Categories + Tree
+// ===============================
 export async function GET() {
-  await dbConnect();
+  try {
+    await dbConnect();
 
-  const categories = await Category.find()
-    .sort({ priority: -1 })
-    .lean();
+    const categories = await Category.find().sort({ priority: -1 });
+    const tree = await Category.getTree();
 
-  return successResponse("Categories fetched successfully", categories);
+    return successResponse("All categories loaded", { categories, tree });
+  } catch (error) {
+    console.error(error);
+    return errorResponse("Failed to load categories");
+  }
 }
 
-// ---------------------------------------------------
-// ADMIN — CREATE CATEGORY
-// ---------------------------------------------------
-
+// ===============================
+// POST — Admin Create Category
+// ===============================
 export async function POST(req: NextRequest) {
-  await dbConnect();
+  try {
+    const admin = await checkAdmin(req);
+    if (!admin) return errorResponse("Admin access required", 403);
 
-  const admin = await requireAdmin(req);
-  if (!admin) return errorResponse("Unauthorized", 401);
+    await dbConnect();
+    const body = await req.json();
 
-  const body = await req.json();
-  const { name, parent, priority } = body;
+    if (!body.name) {
+      return validationErrorResponse({ name: "Name is required" });
+    }
 
-  if (!name) return errorResponse("Name is required", 400);
+    const slug = await Category.generateSlug(body.name);
 
-  const slug = await Category.generateSlug(name);
+    const category = await Category.create({
+      name: body.name,
+      slug,
+      image: body.image,
+      icon: body.icon,
+      banner: body.banner,
+      parent: body.parent ?? null,
+      priority: body.priority ?? 1,
+      isActive: body.isActive ?? true,
+    });
 
-  const category = await Category.create({
-    name,
-    slug,
-    parent: parent || null,
-    priority: priority || 1,
-  });
+    return successResponse("Category created", category, 201);
+  } catch (error) {
+    console.error(error);
+    return errorResponse("Failed to create category");
+  }
+}
 
-  return successResponse("Category created successfully", category, 201);
+// ===============================
+// DELETE — Delete ALL Categories (Admin Only)
+// ===============================
+export async function DELETE(req: NextRequest) {
+  try {
+    const admin = await checkAdmin(req);
+    if (!admin) return errorResponse("Admin access required", 403);
+
+    await dbConnect();
+
+    await Category.deleteMany();
+
+    return successResponse("All categories deleted");
+  } catch (error) {
+    console.error(error);
+    return errorResponse("Something went wrong");
+  }
 }

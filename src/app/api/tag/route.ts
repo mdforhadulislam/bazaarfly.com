@@ -6,7 +6,7 @@ import { NextRequest } from "next/server";
 import dbConnect from "@/components/server/config/dbConnect";
 import { Tag } from "@/components/server/models/Tag.model";
 import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { requireAdmin } from "@/components/server/middleware/checkAdmin";
+import { checkAdmin } from "@/components/server/middleware/checkAdmin";
 
 // ---------------------------------------------------
 // GET — PUBLIC: Fetch all tags
@@ -25,7 +25,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   await dbConnect();
 
-  const admin = await requireAdmin(req);
+  const admin = await checkAdmin(req);
   if (!admin) return errorResponse("Unauthorized", 401);
 
   const body = await req.json();
