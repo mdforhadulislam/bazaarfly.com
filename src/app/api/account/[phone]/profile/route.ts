@@ -110,7 +110,7 @@ export async function POST(req: NextRequest, { params }: { params: { phone: stri
     // parse multipart
     const { fields, files } = await parseForm(req);
     const avatarFile = (files.avatar || files.file) as any;
-    if (!avatarFile) return validationErrorResponse({ avatar: "avatar file is required" } as any);
+    if (!avatarFile) return validationErrorResponse({ avatar: "avatar file is required" } as Record<string, string>);
 
     const filePath = avatarFile.path || avatarFile.filepath || avatarFile.file;
     if (!filePath || !fs.existsSync(filePath)) {

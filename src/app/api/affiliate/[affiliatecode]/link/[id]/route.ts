@@ -103,7 +103,7 @@ export async function DELETE(
   await dbConnect();
   await rateLimit(req);
 
-  const admin = await requireAdmin(req);
+  const admin = await checkAdmin(req);
   if (!admin) return errorResponse("Admin only", 403);
 
   const { affiliatecode, id } = params;

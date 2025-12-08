@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: { phone: stri
     const { label, address, area, city, postalCode, isDefault } = body;
 
     if (!label || !address || !area || !city || !postalCode) {
-      return validationErrorResponse({ fields: "label,address,area,city,postalCode required" } as any);
+      return validationErrorResponse({ fields: "label,address,area,city,postalCode required" });
     }
 
     const requester = await parseUser(req);
@@ -75,7 +75,7 @@ export async function PUT(req: NextRequest, { params }: { params: { phone: strin
     await dbConnect();
     const phone = params.phone;
     const { id, payload } = await req.json();
-    if (!id || !payload) return validationErrorResponse({ id: "id and payload required" } as any);
+    if (!id || !payload) return validationErrorResponse({ id: "id and payload required" });
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -95,7 +95,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { phone: str
     await dbConnect();
     const phone = params.phone;
     const { id, updates } = await req.json();
-    if (!id || !updates) return validationErrorResponse({ id: "id and updates required" } as any);
+    if (!id || !updates) return validationErrorResponse({ id: "id and updates required" });
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -121,7 +121,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { phone: st
     await dbConnect();
     const phone = params.phone;
     const id = req.nextUrl.searchParams.get("id");
-    if (!id) return validationErrorResponse({ id: "id required" } as any);
+    if (!id) return validationErrorResponse({ id: "id required" });
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);

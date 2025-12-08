@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/components/server/config/dbConnect";
 import { Payment } from "@/components/server/models/Payment.model";
-import { Order } from "@/components/server/models/Order.model";
+import { Order, OrderStatus } from "@/components/server/models/Order.model";
 import { User } from "@/components/server/models/User.model";
 import { Notification, NotificationType } from "@/components/server/models/Notification.model";
 import { parseUser } from "@/components/server/middleware/parseUser";
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { phone: strin
   try {
     await dbConnect();
     const { phone, id } = params;
-    if (!phone || !id) return validationErrorResponse({ phone: "phone & id required" } as any);
+    if (!phone || !id) return validationErrorResponse({ phone: "phone & id required" } as Record<string, string>);
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { phone: stri
   try {
     await dbConnect();
     const { phone, id } = params;
-    if (!phone || !id) return validationErrorResponse({ phone: "phone & id required" } as any);
+    if (!phone || !id) return validationErrorResponse({ phone: "phone & id required" } as Record<string, string>);
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -80,12 +80,12 @@ export async function POST(req: NextRequest, { params }: { params: { phone: stri
     // update order paymentStatus and maybe status
     order.paymentStatus = status === "paid" ? "paid" : status;
     if (status === "paid" && order.status === "pending") {
-      order.status = "confirmed";
+      order.status = OrderStatus.CONFIRMED;
     }
     await order.save();
 
     // notify user
-    const user = await User.findById(order.user).lean();
+    const user = await User.findById(order.user);
     if (user) {
       await Notification.createNotification({
         recipient: user._id,

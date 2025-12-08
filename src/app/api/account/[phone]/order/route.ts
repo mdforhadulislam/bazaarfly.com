@@ -1,7 +1,7 @@
 // ORDERS: GET list, POST create, DELETE cancel — notifications on create/cancel
 import { NextRequest } from "next/server";
 import dbConnect from "@/components/server/config/dbConnect";
-import { Order } from "@/components/server/models/Order.model";
+import { Order, OrderStatus } from "@/components/server/models/Order.model";
 import { User } from "@/components/server/models/User.model";
 import { Notification, NotificationType } from "@/components/server/models/Notification.model";
 import { parseUser } from "@/components/server/middleware/parseUser";
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: { phone: strin
   try {
     await dbConnect();
     const phone = params.phone;
-    if (!phone) return validationErrorResponse({ phone: "phone required" } as any);
+    if (!phone) return validationErrorResponse({ phone: "phone required" });
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest, { params }: { params: { phone: stri
   try {
     await dbConnect();
     const phone = params.phone;
-    if (!phone) return validationErrorResponse({ phone: "phone required" } as any);
+    if (!phone) return validationErrorResponse({ phone: "phone required" } as Record<string, string>);
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: { phone: stri
     const user = await User.findOne({ phoneNumber: phone }).lean();
     if (!user) return notFoundResponse("User not found");
 
-    const subtotal = items.reduce((s: number, it: any) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+    const subtotal = items.reduce((s: number, it: { price?: string | number; quantity?: string | number }) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
     const totalAmount = subtotal + Number(shippingCost || 0);
 
     const created = await Order.create({
@@ -137,7 +137,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { phone: st
     await dbConnect();
     const phone = params.phone;
     const id = req.nextUrl.searchParams.get("id");
-    if (!id) return validationErrorResponse({ id: "id required" } as any);
+    if (!id) return validationErrorResponse({ id: "id required" });
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -146,7 +146,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { phone: st
     const order = await Order.findById(id);
     if (!order) return notFoundResponse("Order not found");
 
-    order.status = "cancelled";
+    order.status = OrderStatus.CANCELLED;
     await order.save();
 
     // notify customer

@@ -1,17 +1,19 @@
 // Admin: view/list affiliate profiles, update affiliate status
-import { NextRequest } from "next/server";
 import dbConnect from "@/components/server/config/dbConnect";
-import { Affiliate } from "@/components/server/models/Affiliate.model";
-import { User } from "@/components/server/models/User.model";
 import { checkAdmin } from "@/components/server/middleware/checkAdmin";
+import { Affiliate } from "@/components/server/models/Affiliate.model";
 import {
-  successResponse,
+  Notification,
+  NotificationType,
+} from "@/components/server/models/Notification.model";
+import {
   errorResponse,
-  validationErrorResponse,
-  unauthorizedResponse,
   notFoundResponse,
+  successResponse,
+  unauthorizedResponse,
+  validationErrorResponse,
 } from "@/components/server/utils/response";
-import { Notification, NotificationType } from "@/components/server/models/Notification.model";
+import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,17 +23,31 @@ export async function GET(req: NextRequest) {
 
     const params = Object.fromEntries(req.nextUrl.searchParams);
     const { page = "1", limit = "20", q } = params;
-    const pageNum = Number(page), limitNum = Number(limit), skip = (pageNum - 1) * limitNum;
+    const pageNum = Number(page),
+      limitNum = Number(limit),
+      skip = (pageNum - 1) * limitNum;
 
-    const filter: any = {};
+    const filter: Record<string, unknown> = {};
     if (q) filter.$or = [{ affiliateCode: { $regex: q, $options: "i" } }];
 
     const [affiliates, total] = await Promise.all([
-      Affiliate.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Affiliate.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
       Affiliate.countDocuments(filter),
     ]);
 
-    return successResponse("Affiliates fetched", { affiliates, pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) } });
+    return successResponse("Affiliates fetched", {
+      affiliates,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
   } catch (err) {
     console.error("AFFILIATE PROFILE LIST ERROR:", err);
     return errorResponse("Internal Server Error", 500);
@@ -47,9 +63,15 @@ export async function PUT(req: NextRequest) {
 
     const body = await req.json();
     const { affiliateId, updates } = body ?? {};
-    if (!affiliateId || !updates) return validationErrorResponse({ affiliateId: "affiliateId required", updates: "updates required" } as any);
+    if (!affiliateId || !updates)
+      return validationErrorResponse({
+        affiliateId: "affiliateId required",
+        updates: "updates required",
+      } as Record<string, string>);
 
-    const updated = await Affiliate.findByIdAndUpdate(affiliateId, updates, { new: true }).lean();
+    const updated = await Affiliate.findByIdAndUpdate(affiliateId, updates, {
+      new: true,
+    }).lean();
     if (!updated) return notFoundResponse("Affiliate not found");
 
     // notify affiliate user if status changed
@@ -58,7 +80,10 @@ export async function PUT(req: NextRequest) {
       if (aff && (aff as any).user) {
         await Notification.createNotification({
           recipient: (aff as any).user,
-          type: updates.status === "active" ? NotificationType.AFFILIATE_APPLICATION_APPROVED : NotificationType.AFFILIATE_APPLICATION_REJECTED,
+          type:
+            updates.status === "active"
+              ? NotificationType.AFFILIATE_APPLICATION_APPROVED
+              : NotificationType.AFFILIATE_APPLICATION_REJECTED,
           title: `Affiliate ${updates.status}`,
           message: `Your affiliate account status changed to ${updates.status}.`,
           channels: ["in_app"],

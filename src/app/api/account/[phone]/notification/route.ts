@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: { phone: strin
   try {
     await dbConnect();
     const phone = params.phone;
-    if (!phone) return validationErrorResponse({ phone: "phone required" } as any);
+    if (!phone) return validationErrorResponse({ phone: "phone required" } as Record<string, string>);
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { phone: str
     const phone = params.phone;
     const body = await req.json();
     const { id, markRead } = body;
-    if (!id) return validationErrorResponse({ id: "id required" } as any);
+    if (!id) return validationErrorResponse({ id: "id required" } as Record<string, string>);
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -78,7 +78,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { phone: st
     await dbConnect();
     const phone = params.phone;
     const id = req.nextUrl.searchParams.get("id");
-    if (!id) return validationErrorResponse({ id: "id required" } as any);
+    if (!id) return validationErrorResponse({ id: "id required" } as Record<string, string>);
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);

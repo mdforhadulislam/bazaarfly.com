@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { phone: strin
   try {
     await dbConnect();
     const phone = params.phone;
-    if (!phone) return validationErrorResponse({ phone: "phone required" } as any);
+    if (!phone) return validationErrorResponse({ phone: "phone required" } as Record<string, string>);
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: { phone: stri
   try {
     await dbConnect();
     const phone = params.phone;
-    if (!phone) return validationErrorResponse({ phone: "phone required" } as any);
+    if (!phone) return validationErrorResponse({ phone: "phone required" } as Record<string, string>);
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -136,7 +136,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { phone: st
     if (!admin) return unauthorizedResponse("Admin only");
 
     const id = req.nextUrl.searchParams.get("id");
-    if (!id) return validationErrorResponse({ id: "id required" } as any);
+    if (!id) return validationErrorResponse({ id: "id required" } as Record<string, string>);
 
     const deleted = await Payment.findByIdAndDelete(id).lean();
     if (!deleted) return notFoundResponse("Payment not found");

@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!admin) return unauthorizedResponse("Admin only");
 
     const { id } = params;
-    if (!id) return validationErrorResponse({ id: "id required" } as any);
+    if (!id) return validationErrorResponse({ id: "id required" });
 
     const order = await Order.findById(id).lean();
     if (!order) return notFoundResponse("Conversion/order not found");
@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const { id } = params;
     const updates = await req.json();
-    if (!updates) return validationErrorResponse({ updates: "updates required" } as any);
+    if (!updates) return validationErrorResponse({ updates: "updates required" } );
 
     const order = await Order.findById(id);
     if (!order) return notFoundResponse("Order not found");

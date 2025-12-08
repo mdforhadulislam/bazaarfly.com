@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!admin) return unauthorizedResponse("Admin only");
 
     const { id } = params;
-    if (!id) return validationErrorResponse({ id: "id required" } as any);
+    if (!id) return validationErrorResponse({ id: "id required" } as Record<string, string>);
 
     const order = await Order.findById(id).lean();
     if (!order) return notFoundResponse("Commission/order not found");
@@ -43,7 +43,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const { id } = params;
     const updates = await req.json();
-    if (!updates) return validationErrorResponse({ updates: "updates required" } as any);
+    if (!updates) return validationErrorResponse({ updates: "updates required" } as Record<string, string>);
 
     const order = await Order.findById(id);
     if (!order) return notFoundResponse("Order not found");
@@ -56,7 +56,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Optionally allow marking as released
     if (updates.release === true && order.affiliate && order.affiliateCommission > 0) {
       // find wallet and move held -> available
-      const wallet = await Wallet.findByAffiliate(order.affiliate as Types.ObjectId);
+      const wallet = await Wallet.findOne({ affiliate: order.affiliate as Types.ObjectId });
       if (wallet) {
         await wallet.releaseHeldFunds(order._id as Types.ObjectId);
       }

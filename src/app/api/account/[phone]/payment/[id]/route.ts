@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: { phone: strin
   try {
     await dbConnect();
     const { phone, id } = params;
-    if (!phone || !id) return validationErrorResponse({ phone: "phone & id required" } as any);
+    if (!phone || !id) return validationErrorResponse({ phone: "phone & id required" } as Record<string, string>);
 
     const requester = await parseUser(req);
     const admin = await checkAdmin(req);
@@ -48,7 +48,7 @@ export async function PUT(req: NextRequest, { params }: { params: { phone: strin
 
     const { id } = params;
     const body = await req.json();
-    if (!body) return validationErrorResponse({ body: "body required" } as any);
+    if (!body) return validationErrorResponse({ body: "body required" } as Record<string, string>);
 
     const replaced = await Payment.findByIdAndUpdate(id, body, { new: true }).lean();
     if (!replaced) return notFoundResponse("Payment not found");
@@ -81,7 +81,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { phone: str
 
     const { id } = params;
     const updates = await req.json();
-    if (!updates) return validationErrorResponse({ updates: "updates required" } as any);
+    if (!updates) return validationErrorResponse({ updates: "updates required" } as Record<string, string>);
 
     const payment = await Payment.findById(id);
     if (!payment) return notFoundResponse("Payment not found");
