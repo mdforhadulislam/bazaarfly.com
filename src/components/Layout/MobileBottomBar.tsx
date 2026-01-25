@@ -7,41 +7,39 @@ import { usePathname } from "next/navigation";
 export default function MobileBottomBar() {
   const pathname = usePathname();
 
-  const itemClass = (path: string) =>
-    `flex flex-col items-center gap-1 transition ${
-      pathname === path
-        ? "text-pink-600 scale-105"
-        : "text-gray-500 hover:text-pink-500"
+  const item = (path: string) =>
+    `flex flex-col items-center text-[11px] font-semibold transition ${
+      pathname === path ? "text-orange-500" : "text-gray-500 hover:text-orange-400"
     }`;
 
   return (
-    <nav className="fixed bottom-3 left-1/2 z-50 w-[94%] -translate-x-1/2 rounded-full bg-white/95 backdrop-blur shadow-xl md:hidden border">
-      <div className="flex items-center justify-around py-2 text-[11px] font-medium">
+    <nav className="fixed bottom-3 left-1/2 z-50 w-[94%] -translate-x-1/2 rounded-full bg-white shadow-lg border md:hidden">
+      <div className="flex justify-around py-2">
 
-        <Link href="/" className={itemClass("/")}>
+        <Link href="/" className={item("/")}>
           <Home size={22} />
           Home
         </Link>
 
-        <Link href="/category" className={itemClass("/category")}>
+        <Link href="/category" className={item("/category")}>
           <LayoutGrid size={22} />
           Category
         </Link>
 
-        <Link href="/cart" className={`${itemClass("/cart")} relative`}>
+        <Link href="/cart" className={`${item("/cart")} relative`}>
           <ShoppingCart size={22} />
-          <span className="absolute -top-1 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-pink-600 text-[10px] text-white">
+          <span className="absolute -top-1 right-2 bg-orange-500 text-white text-[10px] px-1 rounded-full">
             2
           </span>
           Cart
         </Link>
 
-        <Link href="/chat" className={itemClass("/chat")}>
+        <Link href="/chat" className={item("/chat")}>
           <MessageCircle size={22} />
           Chat
         </Link>
 
-        <Link href="/profile" className={itemClass("/profile")}>
+        <Link href="/profile" className={item("/profile")}>
           <User size={22} />
           Profile
         </Link>

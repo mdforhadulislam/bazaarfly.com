@@ -116,7 +116,7 @@ export default function RootLayout({
 
         <NavBar />
 
-        <MobileTopBar /> 
+        {/* <MobileTopBar />  */}
  
 
 
