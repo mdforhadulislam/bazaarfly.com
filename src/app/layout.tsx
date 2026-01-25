@@ -7,10 +7,13 @@ import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import NavBar from "../components/Layout/NavBar";
+import MobileBottomBar from "../components/Layout/MobileBottomBar";
+import MobileTopBar from "../components/Layout/MobileTopBar";
 
 // 🔥 Providers (You can add more later)
-import { AuthProvider } from "@/context/AuthContext";
-import { ThemeProvider } from "@/context/ThemeContext";
+// import { AuthProvider } from "@/context/AuthContext";
+// import { ThemeProvider } from "@/context/ThemeContext";
 
 // 🔥 Layout Components (optional; add later)
 // import Navbar from "@/components/shared/Navbar/Navbar";
@@ -35,27 +38,39 @@ const geistMono = Geist_Mono({
 // GLOBAL METADATA (SEO)
 // -------------------------
 export const metadata: Metadata = {
-  title: "Bazaarfly | Your Smart Shopping Destination",
+  title: "Bazaarfly | Smart Online Shopping in Bangladesh",
   description:
-    "Bazaarfly is your one-stop e-commerce platform for fashion, electronics, lifestyle products, and more. Shop smarter with secure checkout, fast delivery, and exclusive deals every day.",
+    "Bazaarfly is a modern online shopping platform in Bangladesh. Shop fashion, electronics, lifestyle products with fast delivery, secure checkout, and exclusive daily deals.",
   keywords: [
     "Bazaarfly",
-    "online shopping",
-    "buy online",
-    "e-commerce Bangladesh",
-    "fashion",
-    "electronics",
-    "lifestyle products",
-    "secure shopping",
-    "fast delivery",
+    "online shopping Bangladesh",
+    "ecommerce Bangladesh",
+    "buy fashion online",
+    "electronics store BD",
+    "best online shop BD",
+    "fast delivery Bangladesh",
   ],
-  authors: [{ name: "Bazaarfly Team" }],
+  authors: [{ name: "Forhadul Islam" }],
   metadataBase: new URL("https://bazaarfly.com"),
 
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+
   openGraph: {
-    title: "Bazaarfly | Shop Smarter, Live Better",
+    title: "Bazaarfly | Smart Shopping Starts Here",
     description:
-      "Discover fashion, electronics, and lifestyle products at Bazaarfly. Exclusive offers, fast delivery, and a seamless shopping experience.",
+      "Shop fashion, electronics, and lifestyle products at Bazaarfly. Fast delivery, secure payment, and exclusive offers.",
     url: "https://bazaarfly.com",
     siteName: "Bazaarfly",
     images: [
@@ -63,7 +78,7 @@ export const metadata: Metadata = {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Bazaarfly - Online Shopping",
+        alt: "Bazaarfly Online Shopping",
       },
     ],
     locale: "en_US",
@@ -72,15 +87,15 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "Bazaarfly | Your Smart Shopping Destination",
+    title: "Bazaarfly | Smart Online Shopping",
     description:
-      "Shop smarter with Bazaarfly. Fashion, electronics, lifestyle, and more — delivered fast.",
+      "Discover trending fashion, electronics & lifestyle products at Bazaarfly.",
     images: ["/og-image.jpg"],
   },
 
+  themeColor: "#0f172a",
   category: "e-commerce",
 };
-
 // -------------------------
 // ROOT LAYOUT
 // -------------------------
@@ -93,21 +108,25 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-50 text-gray-900`}
-      > 
+      >
         <Analytics />
+
+        {/* <ThemeProvider> */}
+        {/* <AuthProvider> */}
+
+        <NavBar />
+
+        <MobileTopBar /> 
  
-        <ThemeProvider>
-          <AuthProvider>
-             
-            {/* <Navbar /> */}
 
-            <main className="container mx-auto px-4 py-6">
-              {children}
-            </main>
 
-            {/* <Footer /> */}
-          </AuthProvider>
-        </ThemeProvider>
+        <main>{children}</main>
+
+        {/* <Footer /> */}
+        {/* </AuthProvider> */}
+        {/* </ThemeProvider> */}
+        
+<MobileBottomBar />
       </body>
     </html>
   );
