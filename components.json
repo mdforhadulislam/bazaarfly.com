@@ -13,13 +13,9 @@
   "iconLibrary": "lucide",
   "aliases": {
     "components": "@/components",
-    "utils": "@/components/lib/utils",
     "ui": "@/components/ui",
-    "lib": "@/components/lib",
-    "hooks": "@/components/hooks",
-    "server":"@/server",
-    "contexts":"@/contexts"
-
+    "utils": "@/lib/utils",
+    "hooks": "@/hooks"
   },
   "registries": {}
 }

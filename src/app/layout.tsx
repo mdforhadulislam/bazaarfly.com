@@ -6,10 +6,9 @@
 import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import NavBar from "../components/Layout/NavBar";
+import MainLayout from "../components/Layout/MainLayout";
 import MobileBottomBar from "../components/Layout/MobileBottomBar";
-import MobileTopBar from "../components/Layout/MobileTopBar";
+import "./globals.css";
 
 // 🔥 Providers (You can add more later)
 // import { AuthProvider } from "@/context/AuthContext";
@@ -111,22 +110,11 @@ export default function RootLayout({
       >
         <Analytics />
 
-        {/* <ThemeProvider> */}
-        {/* <AuthProvider> */}
+        <MainLayout>
+          <main>{children}</main>
+        </MainLayout>
 
-        <NavBar />
-
-        {/* <MobileTopBar />  */}
- 
-
-
-        <main>{children}</main>
-
-        {/* <Footer /> */}
-        {/* </AuthProvider> */}
-        {/* </ThemeProvider> */}
-        
-<MobileBottomBar />
+        <MobileBottomBar />
       </body>
     </html>
   );

@@ -1,153 +1,186 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
+  ChevronDown,
+  ChevronRight,
+  Menu,
   Search,
   ShoppingCart,
   User,
-  Menu,
-  ChevronDown,
+  X,
 } from "lucide-react";
-
-import { Button } from "@/components/components/ui/button";
-import { Input } from "@/components/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/components/ui/dropdown-menu";
-
-const categories = [
-  { name: "Electronics", sub: ["Mobile", "Laptop", "Accessories"] },
-  { name: "Fashion", sub: ["Men", "Women", "Kids"] },
-  { name: "Home & Living", sub: ["Furniture", "Kitchen", "Decor"] },
-];
+import Link from "next/link";
+import { useState } from "react";
 
 export default function NavBar() {
-  const [query, setQuery] = useState("");
-  const loggedIn = true;
-  const affiliate = true;
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState<string | null>(null);
+
+  const categories = [
+    {
+      name: "For You",
+      sub: ["Trending", "Best Deals", "New Arrivals"],
+    },
+    {
+      name: "Men",
+      sub: ["T-Shirts", "Shirts", "Pants", "Footwear", "Accessories"],
+    },
+    {
+      name: "Women",
+      sub: ["Dresses", "Tops", "Saree", "Bags", "Footwear"],
+    },
+    {
+      name: "Kids",
+      sub: ["Boys Clothing", "Girls Clothing", "Toys", "School Bags"],
+    },
+    {
+      name: "Baby",
+      sub: ["Clothing Sets", "Shoes", "Care Products"],
+    },
+    {
+      name: "Health & Beauty",
+      sub: ["Skincare", "Makeup", "Wellness", "Hair Care"],
+    },
+  ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b">
-
-      {/* TOP BAR */}
-      <div className="mx-auto max-w-7xl flex items-center gap-4 px-4 py-3">
-
-        {/* MOBILE MENU */}
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu size={22} />
-        </Button>
-
-        {/* LOGO */}
-        <Link href="/" className="text-2xl font-black text-orange-500 tracking-tight">
-          BazaarFly
-        </Link>
-
-        {/* SEARCH */}
-        <div className="relative flex-1 max-w-[640px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products, brands, categories..."
-            className="pl-10 rounded-full bg-gray-50 focus:ring-orange-500"
-          />
-        </div>
-
-        {/* RIGHT ACTIONS */}
-        <div className="hidden md:flex items-center gap-6">
-
-          <Link href="/orders">
-            <Button variant="ghost">Orders</Button>
-          </Link>
-
-          <Link href="/cart" className="relative">
-            <Button variant="ghost" size="icon">
-              <ShoppingCart size={22} />
+    <>
+      {/* NAVBAR */}
+      <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
+        <div className="mx-auto flex container justify-between items-center gap-4 px-4 py-3">
+          {/* LEFT */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOpen(true)}
+              className="hover:bg-orange-50"
+            >
+              <Menu />
             </Button>
-            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] px-1 rounded-full">
-              2
-            </span>
-          </Link>
 
-          {!loggedIn ? (
-            <Link href="/login">
-              <Button variant="outline">Login</Button>
+            <Link
+              href="/"
+              className="text-2xl font-extrabold tracking-tight text-orange-500"
+            >
+              BazaarFly
             </Link>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-1">
-                  <User size={20} />
-                  <ChevronDown size={14} />
-                </Button>
-              </DropdownMenuTrigger>
+          </div>
 
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link href="/account">Account Info</Link>
-                </DropdownMenuItem>
+          {/* SEARCH */}
+          <div className="relative flex-1 max-w-[620px] ">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={18}
+            />
+            <Input
+              placeholder="Search fashion, gadgets, accessories..."
+              className="pl-11 rounded-full bg-muted focus-visible:ring-orange-500"
+            />
+          </div>
 
-                <DropdownMenuItem asChild>
-                  <Link href="/orders">Orders</Link>
-                </DropdownMenuItem>
+          {/* ICONS */}
+          <div className="hidden md:flex items-center gap-4">
+            <Button variant="ghost" asChild className="gap-2">
+              <Link href="/cart">
+                <ShoppingCart size={18} />
+              </Link>
+            </Button>
 
-                <DropdownMenuItem asChild>
-                  <Link href="/payments">Payments</Link>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem asChild>
-                  <Link href="/address">Address</Link>
-                </DropdownMenuItem>
-
-                {affiliate && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="font-semibold text-orange-600">
-                      Affiliate Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-
-                <DropdownMenuItem className="text-red-500">
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+            <Button
+              variant="default"
+              asChild
+              className="bg-orange-500 hover:bg-orange-600 gap-2"
+            >
+              <Link href="/profile">
+                <User size={18} />
+              </Link>
+            </Button>
+          </div>
         </div>
+      </header>
+
+      {/* SIDEBAR */}
+      <div
+        className={`fixed inset-0 z-50 transition ${
+          open ? "visible" : "invisible"
+        }`}
+      >
+        {/* BACKDROP */}
+        <div
+          onClick={() => setOpen(false)}
+          className={`absolute inset-0 bg-black/40 transition-opacity ${
+            open ? "opacity-100" : "opacity-0"
+          }`}
+        />
+
+        {/* PANEL */}
+        <aside
+          className={`absolute left-0 top-0 h-full w-[320px] bg-white shadow-xl transition-transform duration-300 ${
+            open ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {/* HEADER */}
+          <div className="flex items-center justify-between border-b p-4">
+            <h3 className="text-lg font-bold text-orange-500">
+              Browse Categories
+            </h3>
+            <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+              <X />
+            </Button>
+          </div>
+
+          {/* CATEGORY LIST */}
+          <div className="p-2 space-y-1 overflow-y-auto">
+            {categories.map((cat) => {
+              const isOpen = active === cat.name;
+
+              return (
+                <div key={cat.name} className="rounded-lg border bg-white">
+                  {/* MAIN CATEGORY */}
+                  <button
+                    onClick={() => setActive(isOpen ? null : cat.name)}
+                    className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-orange-50 transition"
+                  >
+                    <span>{cat.name}</span>
+                    <ChevronDown
+                      size={16}
+                      className={`transition-transform ${
+                        isOpen ? "rotate-180 text-orange-500" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* SUBCATEGORY */}
+                  <div
+                    className={`grid transition-all duration-300 ${
+                      isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      {cat.sub.map((sub) => (
+                        <Link
+                          key={sub}
+                          href={`/category/${cat.name.toLowerCase()}/${sub
+                            .toLowerCase()
+                            .replace(" ", "-")}`}
+                          onClick={() => setOpen(false)}
+                          className="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition"
+                        >
+                          <ChevronRight size={14} className="text-gray-400" />
+                          {sub}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
       </div>
-
-      {/* CATEGORY BAR */}
-      <div className="hidden md:block border-t bg-white">
-        <div className="mx-auto max-w-7xl flex gap-8 px-4 py-2 text-sm font-semibold">
-
-          {categories.map((cat, i) => (
-            <DropdownMenu key={i}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-1">
-                  {cat.name}
-                  <ChevronDown size={14} />
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent className="w-56">
-                {cat.sub.map((sub, j) => (
-                  <DropdownMenuItem key={j} asChild>
-                    <Link href={`/category/${sub.toLowerCase()}`}>
-                      {sub}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ))}
-
-        </div>
-      </div>
-    </header>
+    </>
   );
 }
