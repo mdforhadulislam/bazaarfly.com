@@ -1,7 +1,4 @@
 "use client";
-import error from "next/error";
-
- 
 
 const Error = ({ error, reset }: { error: Error; reset: () => void }) => {
   return (

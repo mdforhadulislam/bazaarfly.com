@@ -14,7 +14,7 @@ export default function FooterBar() {
 
   return (
     <footer className="mt-20 bg-white border-t">
-      <div className="container mx-auto px-4 py-14 grid gap-8 md:grid-cols-5 text-gray-700">
+      <div className="container mx-auto px-4 py-14 grid gap-8 md:grid-cols-4 text-gray-700">
         {/* BRAND */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -62,8 +62,6 @@ export default function FooterBar() {
           ]}
         />
 
-        {/* CONTACT */}
-
         {/* POLICIES */}
         <FooterSection
           title="Contact Us"
@@ -76,27 +74,7 @@ export default function FooterBar() {
             `Map : Dhaka, Bangladesh`,
           ]}
         />
-        {/* <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <h4 className="font-semibold mb-3 text-gray-900">
-           
-          </h4>
-
-          <ul className="space-y-2 text-sm text-gray-600">
-            <li className="flex gap-2 hover:text-orange-500 transition">
-              
-            </li>
-            <li className="flex gap-2 hover:text-orange-500 transition">
-              
-            </li>
-            <li className="flex gap-2 hover:text-orange-500 transition">
-              <MapPin size={16} /> Dhaka, Bangladesh
-            </li>
-          </ul>
-        </motion.div> */}
+        
       </div>
 
       {/* BOTTOM BAR */}
