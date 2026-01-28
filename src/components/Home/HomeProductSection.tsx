@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import ProductCard from "@/components/Product/ProductCard";
 
@@ -19,42 +20,41 @@ interface ProductType {
   }[];
 }
 
+const PRODUCTS_PER_LOAD = 10;
+
 const HomeProductSection = ({ products }: { products: ProductType[] }) => {
+  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_LOAD);
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + PRODUCTS_PER_LOAD);
+  };
+
   return (
     <section className="bg-gray-50 py-16 px-4">
-
       <div className="max-w-7xl mx-auto">
 
-        {/* HEADER */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex justify-between items-center mb-8"
-        >
-          <div>
-            <p className="text-orange-600 text-sm font-semibold">
-              Handpicked For You
-            </p>
-            <h2 className="text-3xl font-bold text-gray-900">
-              Featured Products
-            </h2>
-          </div>
 
-          <button className="text-sm font-semibold text-orange-600 hover:underline">
-            View All
-          </button>
-        </motion.div>
 
         {/* GRID */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-          {products.map((product) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-0">
+          {products.slice(0, visibleCount).map((product) => (
             <ProductCard key={product._id} {...product} />
           ))}
         </div>
 
-      </div>
+        {/* LOAD MORE BUTTON */}
+        {visibleCount < products.length && (
+          <div className="text-center mt-10">
+            <button
+              onClick={handleLoadMore}
+              className="px-6 py-3 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 transition"
+            >
+              Load More Products
+            </button>
+          </div>
+        )}
 
+      </div>
     </section>
   );
 };

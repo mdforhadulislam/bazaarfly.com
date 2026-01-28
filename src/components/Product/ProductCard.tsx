@@ -14,15 +14,9 @@ interface ProductCardProps {
   discountPrice?: number;
   finalPrice: number;
   stock: number;
-  colors?: {
-    name: string;
-    hex?: string;
-    images: string[];
-  }[];
 }
 
 const ProductCard = ({
-  _id,
   name,
   slug,
   images,
@@ -30,98 +24,87 @@ const ProductCard = ({
   discountPrice,
   finalPrice,
   stock,
-  colors,
 }: ProductCardProps) => {
-  const mainImage = colors?.[0]?.images?.[0] || images?.[0] || "/placeholder.jpg";
+  const mainImage = images?.[0] || "/placeholder.jpg";
 
   return (
-    <motion.div
+   <div className="border p-1">
+     <motion.div
       whileHover={{ y: -6 }}
-      className="bg-white border rounded-2xl shadow-sm hover:shadow-lg transition overflow-hidden group"
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="group bg-transparent "
     >
+      {/* IMAGE */}
       <Link href={`/product/${slug}`}>
-        <div className="relative">
+        <div className="relative overflow-hidden rounded-2xl bg-gray-100">
 
-          {/* STOCK STATUS */}
-          {stock === 0 && (
-            <span className="absolute top-3 left-3 bg-red-500 text-white text-xs px-2 py-1 rounded z-10">
-              Out of Stock
-            </span>
-          )}
-
-          {/* DISCOUNT BADGE */}
-          {discountPrice && discountPrice < basePrice && (
-            <span className="absolute top-3 right-3 bg-orange-500 text-white text-xs px-2 py-1 rounded z-10">
-              SALE
-            </span>
-          )}
-
-          {/* IMAGE */}
           <Image
             src={mainImage}
             alt={name}
             width={500}
             height={500}
-            className="w-full h-[220px] object-cover transition group-hover:scale-105"
+            className="w-full h-[250px] object-cover transition duration-700 group-hover:scale-110"
           />
+
+          {/* OVERLAY */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-0 group-hover:opacity-100 transition" />
+
+          {/* STOCK */}
+          {stock === 0 && (
+            <span className="absolute top-3 left-3 bg-black/80 text-white text-[10px] px-2 py-1 rounded-full">
+              Out of Stock
+            </span>
+          )}
+
+          {/* SALE */}
+          {discountPrice && discountPrice < basePrice && (
+            <span className="absolute top-3 right-3 bg-orange-600 text-white text-[10px] px-2 py-1 rounded-full">
+              SALE
+            </span>
+          )}
         </div>
       </Link>
 
       {/* CONTENT */}
-      <div className="p-4 space-y-2">
+      <div className="pt-4 space-y-2 px-2 pb-1">
 
-        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">
-          {name}
-        </h3>
+        {/* NAME */}
+        <Link href={`/product/${slug}`}>
+          <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2 hover:text-orange-600 transition">
+            {name}
+          </h3>
+        </Link>
 
         {/* PRICE */}
         <div className="flex items-center gap-2">
-          <span className="text-orange-600 font-bold text-lg">
+          <span className="text-orange-600 font-bold text-base">
             ৳{finalPrice}
           </span>
 
           {discountPrice && discountPrice < basePrice && (
-            <span className="text-gray-400 text-sm line-through">
+            <span className="text-gray-400 text-xs line-through">
               ৳{basePrice}
             </span>
           )}
         </div>
 
-        {/* COLOR VARIANTS */}
-        {colors && colors.length > 0 && (
-          <div className="flex gap-2 pt-1">
-            {colors.slice(0, 4).map((color) => (
-              <span
-                key={color.name}
-                className="h-4 w-4 rounded-full border"
-                style={{ backgroundColor: color.hex || "#ddd" }}
-                title={color.name}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* ACTIONS */}
-        <div className="flex justify-between items-center pt-3">
-
+        {/* ACTIONS — SAME AS YOUR ORIGINAL */}
+        <div className="flex justify-between items-center pt-2 ">
           <button className="text-xs font-semibold text-orange-600 hover:underline">
             View Details
           </button>
 
-          <div className="flex gap-2">
-            <button className="p-2 border rounded-full hover:bg-orange-50 transition">
-              <Heart size={16} />
-            </button>
+          
 
             <button className="p-2 border rounded-full hover:bg-orange-50 transition">
-              <ShoppingCart size={16} />
+              <ShoppingCart size={20} />
             </button>
           </div>
-
-        </div>
+    
 
       </div>
     </motion.div>
+   </div>
   );
 };
 

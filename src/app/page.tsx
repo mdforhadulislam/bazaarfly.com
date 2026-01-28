@@ -17,7 +17,7 @@ export default function Home() {
     commissionPercent: 10,
     category: "65fabc1234567890abcd1111",
     tags: ["fashion", "men"],
-    images: ["/images/products/shirt-1.jpg"],
+    images: ["/sharee.png","/candle.png"],
 
     sizes: ["S", "M", "L", "XL"],
 
@@ -25,12 +25,12 @@ export default function Home() {
       {
         name: "Blue",
         hex: "#2563EB",
-        images: ["/images/products/shirt-blue.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
       {
         name: "Black",
         hex: "#000000",
-        images: ["/images/products/shirt-black.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
     ],
 
@@ -50,18 +50,18 @@ export default function Home() {
     commissionPercent: 15,
     category: "65fabc1234567890abcd2222",
     tags: ["fashion", "bags"],
-    images: ["/images/products/bag-1.jpg"],
+    images: ["/sharee.png","/candle.png"],
 
     colors: [
       {
         name: "Brown",
         hex: "#7C3E0F",
-        images: ["/images/products/bag-brown.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
       {
         name: "Cream",
         hex: "#F5EDE2",
-        images: ["/images/products/bag-cream.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
     ],
 
@@ -81,18 +81,18 @@ export default function Home() {
     commissionPercent: 12,
     category: "65fabc1234567890abcd3333",
     tags: ["electronics", "watch"],
-    images: ["/images/products/watch-1.jpg"],
+    images: ["/sharee.png","/candle.png"],
 
     colors: [
       {
         name: "Silver",
         hex: "#CBD5E1",
-        images: ["/images/products/watch-silver.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
       {
         name: "Black",
         hex: "#111827",
-        images: ["/images/products/watch-black.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
     ],
 
@@ -112,7 +112,7 @@ export default function Home() {
     commissionPercent: 8,
     category: "65fabc1234567890abcd4444",
     tags: ["kids", "fashion"],
-    images: ["/images/products/hoodie-1.jpg"],
+    images: ["/sharee.png","/candle.png"],
 
     sizes: ["4Y", "6Y", "8Y", "10Y"],
 
@@ -120,12 +120,12 @@ export default function Home() {
       {
         name: "Red",
         hex: "#EF4444",
-        images: ["/images/products/hoodie-red.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
       {
         name: "Gray",
         hex: "#9CA3AF",
-        images: ["/images/products/hoodie-gray.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
     ],
 
@@ -145,7 +145,7 @@ export default function Home() {
     commissionPercent: 10,
     category: "65fabc1234567890abcd5555",
     tags: ["shoes", "sports"],
-    images: ["/images/products/shoes-1.jpg"],
+    images: ["/sharee.png","/candle.png"],
 
     sizes: ["39", "40", "41", "42", "43"],
 
@@ -153,12 +153,12 @@ export default function Home() {
       {
         name: "White",
         hex: "#FFFFFF",
-        images: ["/images/products/shoes-white.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
       {
         name: "Black",
         hex: "#000000",
-        images: ["/images/products/shoes-black.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
     ],
 
@@ -167,7 +167,7 @@ export default function Home() {
 
   {
     _id: "6",
-    name: "Luxury Sunglasses",
+    name: "Luxury Sunglasses ",
     slug: "luxury-sunglasses",
     description: "Stylish UV-protected sunglasses.",
     basePrice: 1990,
@@ -178,18 +178,18 @@ export default function Home() {
     commissionPercent: 14,
     category: "65fabc1234567890abcd6666",
     tags: ["accessories"],
-    images: ["/images/products/sunglasses-1.jpg"],
+    images: ["/sharee.png","/candle.png"],
 
     colors: [
       {
         name: "Black",
         hex: "#000000",
-        images: ["/images/products/sunglasses-black.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
       {
         name: "Gold",
         hex: "#D4AF37",
-        images: ["/images/products/sunglasses-gold.jpg"],
+        images: ["/sharee.png","/candle.png"],
       },
     ],
 
