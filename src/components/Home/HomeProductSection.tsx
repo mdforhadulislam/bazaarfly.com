@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
 import ProductCard from "@/components/Product/ProductCard";
+import { useState } from "react";
 
 interface ProductType {
   _id: string;
@@ -32,9 +31,6 @@ const HomeProductSection = ({ products }: { products: ProductType[] }) => {
   return (
     <section className="bg-gray-50 py-16 px-4">
       <div className="max-w-7xl mx-auto">
-
-
-
         {/* GRID */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-0">
           {products.slice(0, visibleCount).map((product) => (
@@ -53,7 +49,6 @@ const HomeProductSection = ({ products }: { products: ProductType[] }) => {
             </button>
           </div>
         )}
-
       </div>
     </section>
   );
