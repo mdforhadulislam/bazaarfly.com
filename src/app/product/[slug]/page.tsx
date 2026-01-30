@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { ShoppingCart, Heart, Check, ShieldCheck, Truck, RefreshCcw } from "lucide-react";
 import { motion } from "framer-motion";
+import RelatedProductSection from "@/components/Product/RelatedProductSection";
 
 // TEMP — replace with API fetch later
 const product = {
@@ -47,7 +48,9 @@ export default function ProductPage() {
       : product.images;
 
   return (
-    <section className="bg-white py-16 pt-5 px-4">
+
+    <>
+    <section className="bg-white pb-10 pt-5 px-4">
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-14">
 
         {/* LEFT — IMAGE GALLERY */}
@@ -136,13 +139,13 @@ export default function ProductPage() {
 
           {/* DESCRIPTION */}
           <p className="text-gray-600 leading-relaxed">
-            {product.description}
+            {product.description}  
           </p>
 
           {/* COLOR PICKER */}
           {product.colors && (
             <div>
-              <p className="text-sm font-semibold mb-2">Color</p>
+              <p className="text-sm font-semibold mb-1">Color</p>
               <div className="flex gap-3">
                 {product.colors.map((color) => (
                   <button
@@ -167,7 +170,7 @@ export default function ProductPage() {
           {/* SIZE PICKER */}
           {product.sizes && (
             <div>
-              <p className="text-sm font-semibold mb-2">Size</p>
+              <p className="text-sm font-semibold mb-1">Size</p>
               <div className="flex gap-2 flex-wrap">
                 {product.sizes.map((size) => (
                   <button
@@ -187,14 +190,14 @@ export default function ProductPage() {
           )}
 
           {/* ACTION BUTTONS */}
-          <div className="flex gap-4 pt-4">
+          <div className="flex gap-4 pt-2">
             <button className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition">
               Add to Cart
             </button>
           </div>
 
           {/* TRUST BADGES */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-6 text-xs text-gray-600">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-3 text-xs text-gray-600">
             <div className="flex gap-2 items-center">
               <ShieldCheck size={16} className="text-orange-500" /> Secure Payment
             </div>
@@ -207,7 +210,11 @@ export default function ProductPage() {
           </div>
         </motion.div>
 
+
       </div>
     </section>
+<RelatedProductSection products={[product, product, product, product, product, product]} />
+
+</>
   );
 }

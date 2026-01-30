@@ -1,8 +1,6 @@
 import HomeHeroSection from "@/components/Home/HomeHeroSection";
 import HomeProductSection from "@/components/Home/HomeProductSection";
 
-export default function Home() {
-
  const dummyProducts = [
   {
     _id: "1",
@@ -196,6 +194,10 @@ export default function Home() {
     status: "active",
   },
 ];
+
+
+export default function Home() {
+ 
 
   return (
     <>

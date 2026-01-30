@@ -13,7 +13,7 @@ export default function FooterBar() {
   };
 
   return (
-    <footer className="mt-20 bg-white border-t">
+    <footer className="mt-5 mb-20 sm:mb-0 bg-white border-t">
       <div className="container mx-auto px-4 py-14 grid gap-8 md:grid-cols-4 text-gray-700">
         {/* BRAND */}
         <motion.div

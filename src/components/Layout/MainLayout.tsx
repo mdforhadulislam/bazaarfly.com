@@ -10,7 +10,7 @@ export default function MainLayout({
   return (
     <>
       <NavBar />
-      <main className="pb-16">{children}</main>
+      <main>{children}</main>
       <MobileBottomBar />
       <FooterBar/>
     </>
