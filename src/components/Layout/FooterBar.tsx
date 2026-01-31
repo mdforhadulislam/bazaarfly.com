@@ -53,12 +53,14 @@ export default function FooterBar() {
           open={open}
           toggle={toggle}
           items={[
-            "Return & Refund Policy",
-            "Exchange Policy",
-            "Shipping & Delivery Policy",
-            "Cancellation Policy",
-            "Privacy Policy",
-            "Terms & Conditions",
+
+            
+            { title: "Return & Refund Policy", link: "return-refund-policy" },
+            { title: "Exchange Policy", link: "exchange-policy" },
+            { title: "Shipping & Delivery Policy", link: "shipping-delivery-policy" },
+            { title: "Cancellation Policy", link: "cancellation-policy" },
+            { title: "Privacy Policy", link: "privacy-policy" },
+            { title: "Terms & Conditions", link: "terms-conditions" },
           ]}
         />
 
@@ -74,7 +76,6 @@ export default function FooterBar() {
             `Map : Dhaka, Bangladesh`,
           ]}
         />
-        
       </div>
 
       {/* BOTTOM BAR */}
@@ -116,7 +117,7 @@ function FooterSection({
   toggle,
 }: {
   title: string;
-  items: string[];
+  items: (string | { title: string; link: string })[];
   id: string;
   open: string | null;
   toggle: (id: string) => void;
@@ -164,10 +165,13 @@ function FooterSection({
         className="overflow-hidden md:!h-auto md:!opacity-100"
       >
         <ul className="mt-3 space-y-2 text-sm text-gray-600">
-          {items.map((item) => (
-            <li key={item}>
-              <Link href="#" className="hover:text-orange-500 transition">
-                {item}
+          {items.map((item, index) => (
+            <li key={typeof item === "string" ? item : index}>
+              <Link
+                href={`/about/${typeof item === "string" ? item : item.link}`}
+                className="hover:text-orange-500 transition"
+              >
+                {typeof item === "string" ? item : item.title}
               </Link>
             </li>
           ))}

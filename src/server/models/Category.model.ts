@@ -1,11 +1,4 @@
-import {
-  Schema,
-  model,
-  Document,
-  Model,
-  Types,
-  models,
-} from "mongoose";
+import { Document, Model, Schema, Types, model, models } from "mongoose";
 import slugify from "slugify";
 
 // --------------------------------------------------
@@ -143,7 +136,7 @@ categorySchema.statics.generateSlug = async function (
   name: string
 ): Promise<string> {
   const baseSlug = slugify(name, { lower: true, strict: true });
-  let uniqueSlug = baseSlug;
+  const uniqueSlug = baseSlug;
 
   const exists = await this.findOne({ slug: uniqueSlug }).lean();
   if (!exists) return uniqueSlug;
@@ -168,7 +161,9 @@ categorySchema.pre("save", async function (next) {
   }
 
   if (this.parent) {
-    const parentCat = await CategoryModel.findById(this.parent).lean<ICategoryLean | null>();
+    const parentCat = await CategoryModel.findById(
+      this.parent
+    ).lean<ICategoryLean | null>();
     this.level = parentCat ? parentCat.level + 1 : 1;
   } else {
     this.level = 1;
