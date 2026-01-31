@@ -42,7 +42,7 @@ export default function AffiliateDashboard() {
     },
     {
       orderId: "ORD-1018",
-      product: "Sneakers",
+      product: "Running Sneakers",
       commission: 200,
       date: "Yesterday",
       status: "pending",
@@ -58,7 +58,7 @@ export default function AffiliateDashboard() {
           Affiliate Dashboard
         </h1>
         <p className="text-sm text-gray-500">
-          Monitor your affiliate performance and earnings.
+          Monitor your earnings and affiliate performance.
         </p>
       </div>
 
@@ -105,14 +105,14 @@ export default function AffiliateDashboard() {
 
           <Link
             href="/affiliate/wallet"
-            className="px-4 py-2 border rounded-md text-sm"
+            className="px-4 py-2 border rounded-md text-sm hover:bg-gray-50"
           >
             View Wallet
           </Link>
 
           <Link
             href="/affiliate/withdraw"
-            className="px-4 py-2 border rounded-md text-sm"
+            className="px-4 py-2 border rounded-md text-sm hover:bg-gray-50"
           >
             Withdraw Earnings
           </Link>
@@ -138,7 +138,7 @@ export default function AffiliateDashboard() {
           {recentCommissions.map((c) => (
             <div
               key={c.orderId}
-              className="flex flex-col md:flex-row md:justify-between md:items-center border rounded-lg p-4"
+              className="flex flex-col md:flex-row md:justify-between md:items-center border rounded-lg p-4 hover:bg-gray-50"
             >
               <div>
                 <p className="font-medium text-sm">
