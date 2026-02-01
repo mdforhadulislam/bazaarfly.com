@@ -1,5 +1,5 @@
-import dbConnect from "@/components/server/config/dbConnect";
-import { User } from "@/components/server/models/User.model";
+import dbConnect from "@/server/config/dbConnect";
+import { User } from "@/server/models/User.model";
 import { verifyToken } from "./verifyToken";
 import { NextRequest } from "next/server";
 
