@@ -14,6 +14,7 @@ import {
   CreditCard,
   Menu,
   LogOut,
+  TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -21,11 +22,14 @@ const menus = [
   { label: "Dashboard", href: "/affiliate", icon: LayoutDashboard },
   { label: "Analytics", href: "/affiliate/analytics", icon: BarChart3 },
   { label: "Links", href: "/affiliate/links", icon: Link2 },
-  { label: "Orders", href: "/affiliate/orders", icon: ShoppingBag },
+  
+  { label: "Conversions", href: "/affiliate/conversions", icon: TrendingUp },
   { label: "Commissions", href: "/affiliate/commissions", icon: CreditCard },
+  
+  { label: "Orders", href: "/affiliate/orders", icon: ShoppingBag },
   { label: "Wallet", href: "/affiliate/wallet", icon: Wallet },
   { label: "Withdraw", href: "/affiliate/withdraw", icon: Wallet },
-  { label: "Notifications", href: "/affiliate/notifications", icon: Bell },
+
   { label: "Profile", href: "/affiliate/profile", icon: User },
   { label: "Settings", href: "/affiliate/settings", icon: Settings },
 ];
@@ -40,7 +44,6 @@ export default function AffiliateLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 
@@ -48,7 +51,7 @@ export default function AffiliateLayout({
           <aside className="md:col-span-1">
             <div className="bg-white rounded-xl border shadow-sm p-4 md:sticky md:top-6 h-fit">
 
-              {/* User block */}
+              {/* User Block */}
               <div className="flex items-center justify-between md:block">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold">
@@ -65,6 +68,7 @@ export default function AffiliateLayout({
                   </div>
                 </div>
 
+                {/* Mobile toggle */}
                 <button
                   className="md:hidden p-2 rounded-md hover:bg-gray-100"
                   onClick={() => setOpen(!open)}
@@ -78,9 +82,11 @@ export default function AffiliateLayout({
                 <ul className="flex flex-col gap-1 max-h-[70vh] overflow-y-auto pr-1">
 
                   {menus.map((item) => {
+                    // Correct active logic
                     const active =
-                      pathname === item.href ||
-                      pathname.startsWith(item.href + "/");
+                      item.href === "/affiliate"
+                        ? pathname === "/affiliate"
+                        : pathname.startsWith(item.href);
 
                     const Icon = item.icon;
 

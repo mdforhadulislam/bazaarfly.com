@@ -58,7 +58,7 @@ const HomeHeroSection = () => {
             </button>
           </Link>
 
-          <Link href="/categories">
+          <Link href="/category">
             <button className="bg-white/80 backdrop-blur border border-gray-300 hover:border-orange-500 hover:text-orange-600 px-8 py-2 rounded-xl font-semibold transition-all hover:-translate-y-0.5">
               Browse Categories
             </button>

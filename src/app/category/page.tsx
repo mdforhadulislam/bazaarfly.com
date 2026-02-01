@@ -103,10 +103,10 @@ export default function CategoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-10">
+    <div className="h-auto bg-gray-50 px-4 py-5">
       <div className="max-w-7xl mx-auto">
         {/* Header + Search */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold">All Categories</h1>
 
           <div className="relative w-full md:w-80">
