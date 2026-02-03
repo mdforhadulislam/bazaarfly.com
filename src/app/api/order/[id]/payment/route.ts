@@ -3,15 +3,15 @@
 // ===================================================
 
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Order } from "@/components/server/models/Order.model";
-import { Payment } from "@/components/server/models/Payment.model";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
-import { parseUser } from "@/components/server/middleware/parseUser";
+import dbConnect from "@/server/config/dbConnect";
+import { Order } from "@/server/models/Order.model";
+import { Payment } from "@/server/models/Payment.model";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
+import { parseUser } from "@/server/middleware/parseUser";
 import {
   successResponse,
   errorResponse,
-} from "@/components/server/utils/response";
+} from "@/server/utils/response";
 
 interface Params {
   id: string;

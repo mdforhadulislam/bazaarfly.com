@@ -4,9 +4,9 @@
 
 import { NextRequest } from "next/server";
 import crypto from "crypto";
-import dbConnect from "@/components/server/config/dbConnect";
-import { User } from "@/components/server/models/User.model";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
+import dbConnect from "@/server/config/dbConnect";
+import { User } from "@/server/models/User.model";
+import { successResponse, errorResponse } from "@/server/utils/response";
 
 // ---------------------------------------------------
 // POST — VERIFY EMAIL

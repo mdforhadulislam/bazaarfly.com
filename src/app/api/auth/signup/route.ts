@@ -3,11 +3,11 @@
 // ===================================================
 
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { User } from "@/components/server/models/User.model";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { emailVerificationEmail } from "@/components/server/templates/EmailTemplates";
-import { sendEmail } from "@/components/server/lib/emailService";
+import dbConnect from "@/server/config/dbConnect";
+import { User } from "@/server/models/User.model";
+import { successResponse, errorResponse } from "@/server/utils/response";
+import { emailVerificationEmail } from "@/server/templates/EmailTemplates";
+import { sendEmail } from "@/server/lib/emailService";
 
 // ---------------------------------------------------
 // STRICT INPUT TYPE

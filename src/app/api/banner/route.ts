@@ -1,9 +1,14 @@
+import dbConnect from "@/server/config/dbConnect";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
+import { Banner } from "@/server/models/Bannar.model";
+import { errorResponse, successResponse } from "@/server/utils/response";
+import { v2 as cloudinary } from "cloudinary";
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Banner } from "@/components/server/models/Bannar.model";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { upload } from "@/components/server/config/multerCloudinary";
+
+interface CloudinaryUploadResult {
+  path: string;
+  [key: string]: unknown;
+}
 
 // We need Next.js file handling
 export const runtime = "nodejs";
@@ -16,8 +21,10 @@ export async function GET() {
     await dbConnect();
     const banners = await Banner.getActiveBanners();
     return successResponse("Active banners fetched", banners);
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "An unknown error occurred";
+    return errorResponse(message);
   }
 }
 
@@ -42,16 +49,17 @@ export async function POST(req: NextRequest) {
     // Cloudinary upload
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const uploadResult: any = await new Promise((resolve, reject) => {
-      upload.storage._handleFile(
-        { file: buffer } as any,
-        {} as any,
-        (err: any, info: any) => {
-          if (err) reject(err);
-          else resolve(info);
-        }
-      );
-    });
+    const uploadResult: CloudinaryUploadResult =
+      await new Promise<CloudinaryUploadResult>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto" },
+          (err: Error | null, result: CloudinaryUploadResult) => {
+            if (err) reject(err);
+            else resolve(result);
+          }
+        );
+        stream.end(buffer);
+      });
 
     const newBanner = await Banner.create({
       title,
@@ -67,8 +75,10 @@ export async function POST(req: NextRequest) {
     });
 
     return successResponse("Banner created", newBanner, 201);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "An unknown error occurred";
     console.log("BANNER CREATE ERROR:", err);
-    return errorResponse(err.message);
+    return errorResponse(message);
   }
 }

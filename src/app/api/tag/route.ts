@@ -3,10 +3,10 @@
 // ===================================================
 
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Tag } from "@/components/server/models/Tag.model";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
+import dbConnect from "@/server/config/dbConnect";
+import { Tag } from "@/server/models/Tag.model";
+import { successResponse, errorResponse } from "@/server/utils/response";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
 
 // ---------------------------------------------------
 // GET — PUBLIC: Fetch all tags

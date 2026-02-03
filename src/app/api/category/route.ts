@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Category } from "@/components/server/models/Category.model";
+import dbConnect from "@/server/config/dbConnect";
+import { Category } from "@/server/models/Category.model";
 import {
   successResponse,
   errorResponse,
   validationErrorResponse,
-} from "@/components/server/utils/response";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
+} from "@/server/utils/response";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
 
 // ===============================
 // GET — All Categories + Tree

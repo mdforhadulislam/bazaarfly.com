@@ -1,13 +1,13 @@
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Popup } from "@/components/server/models/popup.model";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
+import dbConnect from "@/server/config/dbConnect";
+import { Popup } from "@/server/models/popup.model";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
 import {
   successResponse,
   errorResponse,
-} from "@/components/server/utils/response";
+} from "@/server/utils/response";
 
-import { cloudinaryConfig } from "@/components/server/config/cloudinary";
+import { cloudinaryConfig } from "@/server/config/cloudinary";
 
 const cloudinary = cloudinaryConfig();
 

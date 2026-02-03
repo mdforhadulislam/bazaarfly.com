@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Product } from "@/components/server/models/Product.model";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
-import { rateLimit } from "@/components/server/middleware/rateLimit";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
+import dbConnect from "@/server/config/dbConnect";
+import { Product } from "@/server/models/Product.model";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
+import { rateLimit } from "@/server/middleware/rateLimit";
+import { successResponse, errorResponse } from "@/server/utils/response";
 
 // ==================================================
 // GET — PUBLIC (Search + Filter + Pagination)

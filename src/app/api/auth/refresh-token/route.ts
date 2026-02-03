@@ -5,13 +5,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
-import dbConnect from "@/components/server/config/dbConnect";
-import { User } from "@/components/server/models/User.model";
+import dbConnect from "@/server/config/dbConnect";
+import { User } from "@/server/models/User.model";
 import {
   generateAccessToken,
   generateRefreshToken,
-} from "@/components/server/utils/token";
-import { errorResponse, successResponse } from "@/components/server/utils/response";
+} from "@/server/utils/token";
+import { errorResponse, successResponse } from "@/server/utils/response";
 
 // ---------------------------------------------------
 // POST — REFRESH TOKEN

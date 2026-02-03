@@ -1,20 +1,20 @@
 // src/app/api/payment/route.ts
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Payment } from "@/components/server/models/Payment.model";
-import { Order, PaymentStatus } from "@/components/server/models/Order.model";
-import { Wallet } from "@/components/server/models/Wallet.model";
-import { Affiliate } from "@/components/server/models/Affiliate.model";
-import { Link } from "@/components/server/models/Link.model";
-import { parseUser } from "@/components/server/middleware/parseUser";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
-import { rateLimit } from "@/components/server/middleware/rateLimit";
+import dbConnect from "@/server/config/dbConnect";
+import { Payment } from "@/server/models/Payment.model";
+import { Order, PaymentStatus } from "@/server/models/Order.model";
+import { Wallet } from "@/server/models/Wallet.model";
+import { Affiliate } from "@/server/models/Affiliate.model";
+import { Link } from "@/server/models/Link.model";
+import { parseUser } from "@/server/middleware/parseUser";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
+import { rateLimit } from "@/server/middleware/rateLimit";
 import {
   successResponse,
   errorResponse,
   validationErrorResponse,
-} from "@/components/server/utils/response";
-import { Notification, NotificationType } from "@/components/server/models/Notification.model";
+} from "@/server/utils/response";
+import { Notification, NotificationType } from "@/server/models/Notification.model";
 
 export async function GET(req: NextRequest) {
   await dbConnect();

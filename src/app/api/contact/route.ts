@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Contact } from "@/components/server/models/Contact.model";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
+import dbConnect from "@/server/config/dbConnect";
+import { Contact } from "@/server/models/Contact.model";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
 import {
   successResponse,
   errorResponse,
   paginatedResponse,
-} from "@/components/server/utils/response";
+} from "@/server/utils/response";
 
 // ---------------------------
 // PUBLIC — Submit Contact Form

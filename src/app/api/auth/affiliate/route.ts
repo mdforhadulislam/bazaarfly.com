@@ -5,17 +5,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
-import dbConnect from "@/components/server/config/dbConnect";
-import { User } from "@/components/server/models/User.model";
-import { AffiliateApplication } from "@/components/server/models/AffiliateApplication.model";
+import dbConnect from "@/server/config/dbConnect";
+import { User } from "@/server/models/User.model";
+import { AffiliateApplication } from "@/server/models/AffiliateApplication.model";
 
-import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { sendEmail } from "@/components/server/lib/emailService";
+import { successResponse, errorResponse } from "@/server/utils/response";
+import { sendEmail } from "@/server/lib/emailService";
 
 import {
   affiliateApplicationReceived,
   newAffiliateApplicationEmail,
-} from "@/components/server/templates/EmailTemplates";
+} from "@/server/templates/EmailTemplates";
 
 // ---------------------------------------------------
 // Helper: Get user from Access Token

@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Contact } from "@/components/server/models/Contact.model";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
+import dbConnect from "@/server/config/dbConnect";
+import { Contact } from "@/server/models/Contact.model";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
+import { successResponse, errorResponse } from "@/server/utils/response";
 
 // ----------------------
 // GET — Admin view single

@@ -2,11 +2,14 @@
 // src/app/api/auth/signin/route.ts
 // ===================================================
 
-import { NextRequest, NextResponse } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { User } from "@/components/server/models/User.model";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { generateAccessToken, generateRefreshToken } from "@/components/server/utils/token";
+import dbConnect from "@/server/config/dbConnect";
+import { User } from "@/server/models/User.model";
+import { errorResponse, successResponse } from "@/server/utils/response";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from "@/server/utils/token";
+import { NextRequest } from "next/server";
 
 // ---------------------------------------------------
 // STRICT INPUT TYPE
@@ -81,16 +84,15 @@ export async function POST(req: NextRequest) {
     // -----------------------------
     // SET COOKIES
     // -----------------------------
-    const response =  successResponse("Login successful", {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        avatar: user.avatar,
-        role: user.role,
-        isEmailVerified: user.isEmailVerified,
-      })
-  
+    const response = successResponse("Login successful", {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      avatar: user.avatar,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+    });
 
     // Access Token cookie
     response.cookies.set("access_token", accessToken, {

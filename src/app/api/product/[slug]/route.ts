@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Product } from "@/components/server/models/Product.model";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { cloudinaryConfig } from "@/components/server/config/cloudinary";
+import dbConnect from "@/server/config/dbConnect";
+import { Product } from "@/server/models/Product.model";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
+import { successResponse, errorResponse } from "@/server/utils/response";
+import { cloudinaryConfig } from "@/server/config/cloudinary";
 
 interface Params {
   slug: string;

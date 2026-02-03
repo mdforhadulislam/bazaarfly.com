@@ -3,14 +3,14 @@
 // Single Category by Slug
 // ===================================================
 
-import { cloudinaryConfig } from "@/components/server/config/cloudinary";
-import dbConnect from "@/components/server/config/dbConnect";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
-import { Category } from "@/components/server/models/Category.model";
+import { cloudinaryConfig } from "@/server/config/cloudinary";
+import dbConnect from "@/server/config/dbConnect";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
+import { Category } from "@/server/models/Category.model";
 import {
   errorResponse,
   successResponse,
-} from "@/components/server/utils/response";
+} from "@/server/utils/response";
 import { NextRequest } from "next/server";
 
 const cloudinary = cloudinaryConfig();

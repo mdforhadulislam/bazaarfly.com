@@ -1,16 +1,28 @@
+import { cloudinaryConfig } from "@/server/config/cloudinary";
+import dbConnect from "@/server/config/dbConnect";
+import { checkAdmin } from "@/server/middleware/checkAdmin";
+import { Banner } from "@/server/models/Bannar.model";
+import { errorResponse, successResponse } from "@/server/utils/response";
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Banner } from "@/components/server/models/Bannar.model";
-import { checkAdmin } from "@/components/server/middleware/checkAdmin";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
-import { cloudinaryConfig } from "@/components/server/config/cloudinary";
 
 const cloudinary = cloudinaryConfig();
+
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
+interface CloudinaryUploadResponse {
+  secure_url: string;
+  public_id: string;
+  [key: string]: unknown;
+}
 
 // -----------------------------------------
 // GET — Admin only (fetch single banner)
 // -----------------------------------------
-export async function GET(req: NextRequest, { params }: any) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
     const admin = await checkAdmin(req);
@@ -20,15 +32,15 @@ export async function GET(req: NextRequest, { params }: any) {
     if (!banner) return errorResponse("Banner not found", 404);
 
     return successResponse("Banner retrieved", banner);
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err: unknown) {
+    return errorResponse(err instanceof Error ? err.message : "Unknown error");
   }
 }
 
 // -----------------------------------------
 // PUT — Admin update details (no image)
 // -----------------------------------------
-export async function PUT(req: NextRequest, { params }: any) {
+export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
     const admin = await checkAdmin(req);
@@ -43,15 +55,15 @@ export async function PUT(req: NextRequest, { params }: any) {
     if (!banner) return errorResponse("Banner not found", 404);
 
     return successResponse("Banner updated", banner);
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err: unknown) {
+    return errorResponse(err instanceof Error ? err.message : "Unknown error");
   }
 }
 
 // -----------------------------------------
 // PATCH — Update image only
 // -----------------------------------------
-export async function PATCH(req: NextRequest, { params }: any) {
+export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
     const admin = await checkAdmin(req);
@@ -65,14 +77,18 @@ export async function PATCH(req: NextRequest, { params }: any) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const uploadRes: any = await new Promise((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream({ folder: "bazaarfly/banner" }, (err, img) => {
-          if (err) reject(err);
-          else resolve(img);
-        })
-        .end(buffer);
-    });
+    const uploadRes: CloudinaryUploadResponse = await new Promise(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: "bazaarfly/banner" }, (err, img) => {
+            if (err) reject(err);
+            else if (img) resolve(img);
+            else
+              reject(new Error("Upload failed: no response from Cloudinary"));
+          })
+          .end(buffer);
+      }
+    );
 
     const updated = await Banner.findByIdAndUpdate(
       params.id,
@@ -83,15 +99,15 @@ export async function PATCH(req: NextRequest, { params }: any) {
     if (!updated) return errorResponse("Banner not found", 404);
 
     return successResponse("Banner image updated", updated);
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err: unknown) {
+    return errorResponse(err instanceof Error ? err.message : "Unknown error");
   }
 }
 
 // -----------------------------------------
 // DELETE — Admin remove banner
 // -----------------------------------------
-export async function DELETE(req: NextRequest, { params }: any) {
+export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
     const admin = await checkAdmin(req);
@@ -101,7 +117,7 @@ export async function DELETE(req: NextRequest, { params }: any) {
     if (!deleted) return errorResponse("Banner not found", 404);
 
     return successResponse("Banner deleted");
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err: unknown) {
+    return errorResponse(err instanceof Error ? err.message : "Unknown error");
   }
 }

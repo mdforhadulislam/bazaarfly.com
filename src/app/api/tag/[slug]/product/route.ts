@@ -3,10 +3,10 @@
 // ===================================================
 
 import { NextRequest } from "next/server";
-import dbConnect from "@/components/server/config/dbConnect";
-import { Tag } from "@/components/server/models/Tag.model";
-import { Product } from "@/components/server/models/Product.model";
-import { successResponse, errorResponse } from "@/components/server/utils/response";
+import dbConnect from "@/server/config/dbConnect";
+import { Tag } from "@/server/models/Tag.model";
+import { Product } from "@/server/models/Product.model";
+import { successResponse, errorResponse } from "@/server/utils/response";
 
 interface Params {
   slug: string;
