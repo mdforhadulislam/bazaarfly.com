@@ -1,7 +1,7 @@
 import HomeHeroSection from "@/components/Home/HomeHeroSection";
 import HomeProductSection from "@/components/Home/HomeProductSection";
 
- const dummyProducts = [
+const dummyProducts = [
   {
     _id: "1",
     name: "Premium Men's Casual Shirt",
@@ -15,7 +15,7 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
     commissionPercent: 10,
     category: "65fabc1234567890abcd1111",
     tags: ["fashion", "men"],
-    images: ["/sharee.png","/candle.png"],
+    images: ["/sharee.png", "/candle.png"],
 
     sizes: ["S", "M", "L", "XL"],
 
@@ -23,12 +23,12 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
       {
         name: "Blue",
         hex: "#2563EB",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
       {
         name: "Black",
         hex: "#000000",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
     ],
 
@@ -48,18 +48,18 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
     commissionPercent: 15,
     category: "65fabc1234567890abcd2222",
     tags: ["fashion", "bags"],
-    images: ["/sharee.png","/candle.png"],
+    images: ["/sharee.png", "/candle.png"],
 
     colors: [
       {
         name: "Brown",
         hex: "#7C3E0F",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
       {
         name: "Cream",
         hex: "#F5EDE2",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
     ],
 
@@ -79,18 +79,18 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
     commissionPercent: 12,
     category: "65fabc1234567890abcd3333",
     tags: ["electronics", "watch"],
-    images: ["/sharee.png","/candle.png"],
+    images: ["/sharee.png", "/candle.png"],
 
     colors: [
       {
         name: "Silver",
         hex: "#CBD5E1",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
       {
         name: "Black",
         hex: "#111827",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
     ],
 
@@ -110,7 +110,7 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
     commissionPercent: 8,
     category: "65fabc1234567890abcd4444",
     tags: ["kids", "fashion"],
-    images: ["/sharee.png","/candle.png"],
+    images: ["/sharee.png", "/candle.png"],
 
     sizes: ["4Y", "6Y", "8Y", "10Y"],
 
@@ -118,12 +118,12 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
       {
         name: "Red",
         hex: "#EF4444",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
       {
         name: "Gray",
         hex: "#9CA3AF",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
     ],
 
@@ -143,7 +143,7 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
     commissionPercent: 10,
     category: "65fabc1234567890abcd5555",
     tags: ["shoes", "sports"],
-    images: ["/sharee.png","/candle.png"],
+    images: ["/sharee.png", "/candle.png"],
 
     sizes: ["39", "40", "41", "42", "43"],
 
@@ -151,12 +151,12 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
       {
         name: "White",
         hex: "#FFFFFF",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
       {
         name: "Black",
         hex: "#000000",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
     ],
 
@@ -165,7 +165,7 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
 
   {
     _id: "6",
-    name: "Luxury Sunglasses ",
+    name: "Luxury Sunglasses",
     slug: "luxury-sunglasses",
     description: "Stylish UV-protected sunglasses.",
     basePrice: 1990,
@@ -176,18 +176,18 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
     commissionPercent: 14,
     category: "65fabc1234567890abcd6666",
     tags: ["accessories"],
-    images: ["/sharee.png","/candle.png"],
+    images: ["/sharee.png", "/candle.png"],
 
     colors: [
       {
         name: "Black",
         hex: "#000000",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
       {
         name: "Gold",
         hex: "#D4AF37",
-        images: ["/sharee.png","/candle.png"],
+        images: ["/sharee.png", "/candle.png"],
       },
     ],
 
@@ -197,8 +197,6 @@ import HomeProductSection from "@/components/Home/HomeProductSection";
 
 
 export default function Home() {
- 
-
   return (
     <>
       <HomeHeroSection />
