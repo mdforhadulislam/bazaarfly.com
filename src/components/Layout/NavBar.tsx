@@ -57,6 +57,7 @@ export default function NavBar() {
               size="icon"
               onClick={() => setOpen(true)}
               className="hover:bg-orange-50"
+              aria-label="Open menu"
             >
               <Menu />
             </Button>
@@ -70,7 +71,11 @@ export default function NavBar() {
           </div>
 
           {/* SEARCH */}
-          <div className="relative flex-1 max-w-[620px] ">
+          <form
+            className="relative flex-1 max-w-[620px]"
+            role="search"
+            aria-label="Site search"
+          >
             <Search
               className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={18}
@@ -78,13 +83,14 @@ export default function NavBar() {
             <Input
               placeholder="Search fashion, gadgets, accessories..."
               className="pl-11 rounded-full bg-muted focus-visible:ring-orange-500"
+              aria-label="Search products"
             />
-          </div>
+          </form>
 
           {/* ICONS */}
           <div className="hidden md:flex items-center gap-4">
             <Button variant="ghost" asChild className="gap-2">
-              <Link href="/cart">
+              <Link href="/cart" aria-label="View cart">
                 <ShoppingCart size={18} />
               </Link>
             </Button>
@@ -94,7 +100,7 @@ export default function NavBar() {
               asChild
               className="bg-orange-500 hover:bg-orange-600 gap-2"
             >
-              <Link href="/profile">
+              <Link href="/profile" aria-label="View profile">
                 <User size={18} />
               </Link>
             </Button>
@@ -127,7 +133,12 @@ export default function NavBar() {
             <h3 className="text-lg font-bold text-orange-500">
               Browse Categories
             </h3>
-            <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOpen(false)}
+              aria-label="Close menu"
+            >
               <X />
             </Button>
           </div>
@@ -143,6 +154,8 @@ export default function NavBar() {
                   <button
                     onClick={() => setActive(isOpen ? null : cat.name)}
                     className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-orange-50 transition"
+                    aria-expanded={isOpen}
+                    aria-controls={`category-${cat.name}`}
                   >
                     <span>{cat.name}</span>
                     <ChevronDown
@@ -155,6 +168,7 @@ export default function NavBar() {
 
                   {/* SUBCATEGORY */}
                   <div
+                    id={`category-${cat.name}`}
                     className={`grid transition-all duration-300 ${
                       isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                     }`}

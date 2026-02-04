@@ -31,11 +31,31 @@ export default function FooterBar() {
 
           {/* SOCIAL LINKS */}
           <div className="flex gap-3 pt-2">
-            {[Facebook, Instagram, Youtube].map((Icon, i) => (
+            {[
+              {
+                icon: Facebook,
+                label: "Facebook",
+                href: "https://facebook.com/bazaarfly",
+              },
+              {
+                icon: Instagram,
+                label: "Instagram",
+                href: "https://instagram.com/bazaarfly",
+              },
+              {
+                icon: Youtube,
+                label: "YouTube",
+                href: "https://youtube.com",
+              },
+            ].map(({ icon: Icon, label, href }) => (
               <motion.a
-                key={i}
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noreferrer"
                 whileHover={{ scale: 1.1, y: -2 }}
                 className="p-2 rounded-full border hover:bg-orange-50 transition"
+                aria-label={label}
               >
                 <Icon
                   size={18}
@@ -53,11 +73,12 @@ export default function FooterBar() {
           open={open}
           toggle={toggle}
           items={[
-
-            
             { title: "Return & Refund Policy", link: "return-refund-policy" },
             { title: "Exchange Policy", link: "exchange-policy" },
-            { title: "Shipping & Delivery Policy", link: "shipping-delivery-policy" },
+            {
+              title: "Shipping & Delivery Policy",
+              link: "shipping-delivery-policy",
+            },
             { title: "Cancellation Policy", link: "cancellation-policy" },
             { title: "Privacy Policy", link: "privacy-policy" },
             { title: "Terms & Conditions", link: "terms-conditions" },
@@ -71,9 +92,12 @@ export default function FooterBar() {
           open={open}
           toggle={toggle}
           items={[
-            `Phone : +880 1XXX-XXXXXX`,
-            `Email : support@bazaarfly.com`,
-            `Map : Dhaka, Bangladesh`,
+            { title: "Phone: +880 1XXX-XXXXXX", href: "tel:+8801" },
+            {
+              title: "Email: support@bazaarfly.com",
+              href: "mailto:support@bazaarfly.com",
+            },
+            { title: "Map: Dhaka, Bangladesh", href: "https://maps.google.com" },
           ]}
         />
       </div>
@@ -117,7 +141,7 @@ function FooterSection({
   toggle,
 }: {
   title: string;
-  items: (string | { title: string; link: string })[];
+  items: ({ title: string; link?: string; href?: string } | string)[];
   id: string;
   open: string | null;
   toggle: (id: string) => void;
@@ -151,28 +175,31 @@ function FooterSection({
       <motion.div
         initial={false}
         animate={{
-          height:
-            isOpen ||
-            (typeof window !== "undefined" && window.innerWidth >= 768)
-              ? "auto"
-              : 0,
-          opacity:
-            isOpen ||
-            (typeof window !== "undefined" && window.innerWidth >= 768)
-              ? 1
-              : 0,
+          height: isOpen ? "auto" : 0,
+          opacity: isOpen ? 1 : 0,
         }}
         className="overflow-hidden md:!h-auto md:!opacity-100"
       >
         <ul className="mt-3 space-y-2 text-sm text-gray-600">
           {items.map((item, index) => (
             <li key={typeof item === "string" ? item : index}>
-              <Link
-                href={`/about/${typeof item === "string" ? item : item.link}`}
-                className="hover:text-orange-500 transition"
-              >
-                {typeof item === "string" ? item : item.title}
-              </Link>
+              {typeof item === "string" ? (
+                <span>{item}</span>
+              ) : item.href ? (
+                <a
+                  href={item.href}
+                  className="hover:text-orange-500 transition"
+                >
+                  {item.title}
+                </a>
+              ) : (
+                <Link
+                  href={`/about/${item.link}`}
+                  className="hover:text-orange-500 transition"
+                >
+                  {item.title}
+                </Link>
+              )}
             </li>
           ))}
         </ul>
