@@ -1,14 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  Search,
-  Plus,
-  Pencil,
-  Trash2,
-  X,
-  Tag as TagIcon,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Plus, Pencil, Trash2, X, Tag as TagIcon } from "lucide-react";
 
 type TagRow = {
   _id: string;
@@ -16,14 +9,8 @@ type TagRow = {
   slug: string;
   isActive: boolean;
   createdAt?: string;
+  updatedAt?: string;
 };
-
-const dummyTags: TagRow[] = [
-  { _id: "t1", name: "New Arrival", slug: "new-arrival", isActive: true, createdAt: "2026-01-21" },
-  { _id: "t2", name: "Trending", slug: "trending", isActive: true, createdAt: "2026-01-10" },
-  { _id: "t3", name: "Discount", slug: "discount", isActive: true, createdAt: "2025-12-18" },
-  { _id: "t4", name: "Out of Stock", slug: "out-of-stock", isActive: false, createdAt: "2025-12-02" },
-];
 
 function slugifyLite(input: string) {
   return input
@@ -36,7 +23,8 @@ function slugifyLite(input: string) {
 
 export default function AdminTagsPage() {
   const [q, setQ] = useState("");
-  const [tags, setTags] = useState<TagRow[]>(dummyTags);
+  const [tags, setTags] = useState<TagRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // modal state
   const [openCreate, setOpenCreate] = useState(false);
@@ -48,15 +36,7 @@ export default function AdminTagsPage() {
   const [slug, setSlug] = useState("");
   const [isActive, setIsActive] = useState(true);
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return tags;
-    return tags.filter(
-      (t) =>
-        t.name.toLowerCase().includes(s) || t.slug.toLowerCase().includes(s)
-    );
-  }, [q, tags]);
-
+  // ---- helpers ----
   const resetForm = () => {
     setName("");
     setSlug("");
@@ -77,63 +57,139 @@ export default function AdminTagsPage() {
     setOpenEdit(true);
   };
 
-  const handleCreate = () => {
-    const n = name.trim();
-    if (!n) return alert("Tag name is required");
-    const s = (slug.trim() ? slug : slugifyLite(n)).toLowerCase();
-
-    if (tags.some((t) => t.slug === s)) {
-      return alert("This slug already exists");
-    }
-
-    const newTag: TagRow = {
-      _id: `t_${Date.now()}`,
-      name: n,
-      slug: s,
-      isActive,
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
-
-    // TODO: API call → create tag
-    setTags((prev) => [newTag, ...prev]);
+  const closeCreate = () => {
     setOpenCreate(false);
     resetForm();
   };
 
-  const handleUpdate = () => {
-    if (!selected) return;
-    const n = name.trim();
-    if (!n) return alert("Tag name is required");
-    const s = (slug.trim() ? slug : slugifyLite(n)).toLowerCase();
-
-    if (tags.some((t) => t.slug === s && t._id !== selected._id)) {
-      return alert("This slug already exists");
-    }
-
-    // TODO: API call → update tag
-    setTags((prev) =>
-      prev.map((t) =>
-        t._id === selected._id ? { ...t, name: n, slug: s, isActive } : t
-      )
-    );
-
+  const closeEdit = () => {
     setOpenEdit(false);
     resetForm();
   };
 
-  const handleDelete = (id: string) => {
+  const fetchTags = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/tag", { cache: "no-store" });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data?.message || "Failed to load tags");
+
+      // assuming: { success, message, data }
+      setTags(Array.isArray(data?.data) ? data.data : []);
+    } catch (e: any) {
+      alert(e?.message || "Failed to load tags");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTags();
+  }, []);
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return tags;
+    return tags.filter(
+      (t) => t.name.toLowerCase().includes(s) || t.slug.toLowerCase().includes(s)
+    );
+  }, [q, tags]);
+
+  // ---- actions ----
+  const handleCreate = async () => {
+    const n = name.trim();
+    if (!n) return alert("Tag name is required");
+
+    const s = (slug.trim() ? slug : slugifyLite(n)).toLowerCase();
+
+    // quick client-side duplicate check
+    if (tags.some((t) => t.slug === s)) return alert("This slug already exists");
+
+    try {
+      const res = await fetch("/api/tag", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: n, slug: s, isActive }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Failed to create tag");
+
+      setTags((prev) => [data.data as TagRow, ...prev]);
+      closeCreate();
+    } catch (e: any) {
+      alert(e?.message || "Failed to create tag");
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!selected) return;
+
+    const n = name.trim();
+    if (!n) return alert("Tag name is required");
+
+    const s = (slug.trim() ? slug : slugifyLite(n)).toLowerCase();
+
+    // client-side slug conflict check (ignore own id)
+    if (tags.some((t) => t.slug === s && t._id !== selected._id)) {
+      return alert("This slug already exists");
+    }
+
+    try {
+      const res = await fetch(`/api/tag/${selected.slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: n, slug: s, isActive }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Failed to update tag");
+
+      setTags((prev) =>
+        prev.map((t) => (t._id === selected._id ? (data.data as TagRow) : t))
+      );
+
+      closeEdit();
+    } catch (e: any) {
+      alert(e?.message || "Failed to update tag");
+    }
+  };
+
+  const handleDelete = async (t: TagRow) => {
     const ok = confirm("Are you sure you want to delete this tag?");
     if (!ok) return;
 
-    // TODO: API call → delete tag
-    setTags((prev) => prev.filter((t) => t._id !== id));
+    try {
+      const res = await fetch(`/api/tag/${t.slug}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Failed to delete tag");
+
+      setTags((prev) => prev.filter((x) => x._id !== t._id));
+    } catch (e: any) {
+      alert(e?.message || "Failed to delete tag");
+    }
   };
 
-  const toggleActive = (id: string) => {
-    // TODO: API call → toggle active
-    setTags((prev) =>
-      prev.map((t) => (t._id === id ? { ...t, isActive: !t.isActive } : t))
-    );
+  const toggleActive = async (t: TagRow) => {
+    try {
+      const res = await fetch(`/api/tag/${t.slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: t.name,
+          slug: t.slug,
+          isActive: !t.isActive,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Failed to toggle status");
+
+      setTags((prev) => prev.map((x) => (x._id === t._id ? (data.data as TagRow) : x)));
+    } catch (e: any) {
+      alert(e?.message || "Failed to toggle status");
+    }
   };
 
   return (
@@ -167,8 +223,14 @@ export default function AdminTagsPage() {
           />
         </div>
 
-        <div className="text-xs text-gray-500 mt-2">
-          Total: <span className="font-semibold">{filtered.length}</span>
+        <div className="text-xs text-gray-500 mt-2 flex items-center gap-2">
+          {loading ? (
+            <span className="font-semibold">Loading...</span>
+          ) : (
+            <>
+              Total: <span className="font-semibold">{filtered.length}</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -187,69 +249,79 @@ export default function AdminTagsPage() {
             </thead>
 
             <tbody>
-              {filtered.map((t) => (
-                <tr key={t._id} className="border-t">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center">
-                        <TagIcon size={18} />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-800">{t.name}</p>
-                        <p className="text-xs text-gray-500">ID: {t._id}</p>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="py-3 px-4 text-gray-700">{t.slug}</td>
-
-                  <td className="py-3 px-4">
-                    <button
-                      onClick={() => toggleActive(t._id)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        t.isActive
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                      title="Toggle Active"
-                    >
-                      {t.isActive ? "Active" : "Inactive"}
-                    </button>
-                  </td>
-
-                  <td className="py-3 px-4 text-gray-500">
-                    {t.createdAt ?? "-"}
-                  </td>
-
-                  <td className="py-3 px-4">
-                    <div className="flex justify-end items-center gap-2">
-                      <button
-                        onClick={() => openEditModal(t)}
-                        className="px-3 py-1.5 rounded-md border text-xs font-semibold hover:bg-gray-50 inline-flex items-center gap-2"
-                      >
-                        <Pencil size={14} />
-                        Edit
-                      </button>
-
-                      <button
-                        onClick={() => handleDelete(t._id)}
-                        className="px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-semibold hover:bg-red-700 inline-flex items-center gap-2"
-                      >
-                        <Trash2 size={14} />
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-
-              {filtered.length === 0 ? (
+              {loading ? (
                 <tr>
                   <td colSpan={5} className="py-10 text-center text-gray-500">
-                    No tags found.
+                    Loading tags...
                   </td>
                 </tr>
-              ) : null}
+              ) : (
+                <>
+                  {filtered.map((t) => (
+                    <tr key={t._id} className="border-t">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center">
+                            <TagIcon size={18} />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-800">{t.name}</p>
+                            <p className="text-xs text-gray-500">ID: {t._id}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 text-gray-700">{t.slug}</td>
+
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => toggleActive(t)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            t.isActive
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                          title="Toggle Active"
+                        >
+                          {t.isActive ? "Active" : "Inactive"}
+                        </button>
+                      </td>
+
+                      <td className="py-3 px-4 text-gray-500">
+                        {t.createdAt ? String(t.createdAt).slice(0, 10) : "-"}
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <div className="flex justify-end items-center gap-2">
+                          <button
+                            onClick={() => openEditModal(t)}
+                            className="px-3 py-1.5 rounded-md border text-xs font-semibold hover:bg-gray-50 inline-flex items-center gap-2"
+                          >
+                            <Pencil size={14} />
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={() => handleDelete(t)}
+                            className="px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-semibold hover:bg-red-700 inline-flex items-center gap-2"
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-10 text-center text-gray-500">
+                        No tags found.
+                      </td>
+                    </tr>
+                  ) : null}
+                </>
+              )}
             </tbody>
           </table>
         </div>
@@ -261,13 +333,7 @@ export default function AdminTagsPage() {
           <div className="w-full max-w-lg bg-white rounded-xl border shadow-lg overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="font-semibold text-gray-800">Create Tag</h3>
-              <button
-                onClick={() => {
-                  setOpenCreate(false);
-                  resetForm();
-                }}
-                className="p-2 rounded-md hover:bg-gray-100"
-              >
+              <button onClick={closeCreate} className="p-2 rounded-md hover:bg-gray-100">
                 <X size={18} />
               </button>
             </div>
@@ -310,13 +376,7 @@ export default function AdminTagsPage() {
             </div>
 
             <div className="p-4 border-t flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setOpenCreate(false);
-                  resetForm();
-                }}
-                className="px-3 py-2 rounded-md text-sm border hover:bg-gray-50"
-              >
+              <button onClick={closeCreate} className="px-3 py-2 rounded-md text-sm border hover:bg-gray-50">
                 Cancel
               </button>
               <button
@@ -336,13 +396,7 @@ export default function AdminTagsPage() {
           <div className="w-full max-w-lg bg-white rounded-xl border shadow-lg overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="font-semibold text-gray-800">Edit Tag</h3>
-              <button
-                onClick={() => {
-                  setOpenEdit(false);
-                  resetForm();
-                }}
-                className="p-2 rounded-md hover:bg-gray-100"
-              >
+              <button onClick={closeEdit} className="p-2 rounded-md hover:bg-gray-100">
                 <X size={18} />
               </button>
             </div>
@@ -380,13 +434,7 @@ export default function AdminTagsPage() {
             </div>
 
             <div className="p-4 border-t flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setOpenEdit(false);
-                  resetForm();
-                }}
-                className="px-3 py-2 rounded-md text-sm border hover:bg-gray-50"
-              >
+              <button onClick={closeEdit} className="px-3 py-2 rounded-md text-sm border hover:bg-gray-50">
                 Cancel
               </button>
               <button

@@ -227,7 +227,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
                 <div className="leading-tight">
                   <p className="text-sm font-semibold text-gray-800">Admin Panel</p>
-                  <p className="text-[11px] text-gray-500">admin@bazaarfly.com</p>
+                  <p className="text-[11px] text-gray-500">{user?.email}</p>
+                   
                 </div>
               </div>
 
@@ -277,24 +278,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Content */}
           <main className="md:col-span-9 lg:col-span-9">
             <div className="bg-white rounded-2xl border shadow-sm p-6 min-h-[65vh]">
-              {/* Page Header */}
-              <div className="flex items-start sm:items-center justify-between gap-4 pb-4 border-b mb-6">
-                <div>
-                  <p className="text-sm text-gray-500">Bazaarfly Admin</p>
-                  <h1 className="text-lg font-semibold text-gray-800">
-                    {prettyTitle(pathname)}
-                  </h1>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    className="px-3 py-2 rounded-md text-sm border hover:bg-gray-50"
-                    type="button"
-                  >
-                    Quick Action
-                  </button>
-                </div>
-              </div>
+             
 
               {children}
             </div>

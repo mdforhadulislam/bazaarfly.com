@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -27,8 +27,8 @@ type ProductForm = {
   sku: string;
   description: string;
 
-  category: string; // should be category ObjectId (recommended)
-  tags: string[]; // should be tag ObjectId[] (recommended)
+  category: string; // ObjectId
+  tags: string[]; // ObjectId[]
 
   status: ProductStatus;
   stock: number;
@@ -38,6 +38,12 @@ type ProductForm = {
 
   images: string[];
   colors: ColorVariant[];
+};
+
+type OptionItem = {
+  _id: string;
+  name: string;
+  slug?: string;
 };
 
 /* ---------------- HELPERS ---------------- */
@@ -62,13 +68,6 @@ async function safeJson(res: Response) {
   }
 }
 
-/* ---------------- DUMMY OPTIONS ----------------
-   NOTE: In real app, these should come from API:
-   /api/categories, /api/tags returning _id + name
-------------------------------------------------- */
-const categoryOptions = ["Fashion", "Electronics", "Home & Living", "Beauty"];
-const tagOptions = ["New", "Trending", "Hot Deal", "Exclusive", "Limited"];
-
 /* ---------------- PAGE ---------------- */
 export default function AdminProductCreatePage() {
   const [form, setForm] = useState<ProductForm>({
@@ -90,9 +89,64 @@ export default function AdminProductCreatePage() {
     colors: [],
   });
 
+  // meta data (from API)
+  const [categoryOptions, setCategoryOptions] = useState<OptionItem[]>([]);
+  const [tagOptions, setTagOptions] = useState<OptionItem[]>([]);
+  const [metaLoading, setMetaLoading] = useState(true);
+
   const [saving, setSaving] = useState(false);
   const [uploadingMain, setUploadingMain] = useState(false);
-  const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(null);
+  const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(
+    null
+  );
+
+  // load categories + tags from API
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        setMetaLoading(true);
+
+        const [catRes, tagRes] = await Promise.all([
+          fetch("/api/category", { credentials: "include" }),
+          fetch("/api/tag", { credentials: "include" }),
+        ]);
+
+
+        const catJson = await safeJson(catRes);
+        const tagJson = await safeJson(tagRes);
+ 
+        
+
+        if (!catRes.ok) {
+          throw new Error(
+            catJson?.message || catJson?.msg || "Failed to load categories"
+          );
+        }
+        if (!tagRes.ok) {
+          throw new Error(
+            tagJson?.message || tagJson?.msg || "Failed to load tags"
+          );
+        }
+
+        const cats: OptionItem[] = catJson?.data.categories ?? [];
+        const tags: OptionItem[] = tagJson?.data ?? [];
+
+        if (!mounted) return;
+        setCategoryOptions(cats);
+        setTagOptions(tags);
+      } catch (e: any) {
+        alert(e?.message || "Failed to load categories/tags");
+      } finally {
+        if (mounted) setMetaLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const finalPrice = useMemo(() => {
     const base = Number(form.basePrice || 0);
@@ -113,12 +167,12 @@ export default function AdminProductCreatePage() {
   };
 
   /* ---------- TAGS ---------- */
-  const toggleTag = (tag: string) => {
+  const toggleTag = (tagId: string) => {
     setForm((p) => {
-      const exists = p.tags.includes(tag);
+      const exists = p.tags.includes(tagId);
       return {
         ...p,
-        tags: exists ? p.tags.filter((t) => t !== tag) : [...p.tags, tag],
+        tags: exists ? p.tags.filter((t) => t !== tagId) : [...p.tags, tagId],
       };
     });
   };
@@ -166,23 +220,19 @@ export default function AdminProductCreatePage() {
 
   /* ======================================================
      API: CREATE PRODUCT
-     POST /api/products
+     POST /api/product
   ====================================================== */
   const createProduct = async () => {
-    // basic validation
     if (!form.name.trim()) throw new Error("Product name is required");
     if (!form.slug.trim()) throw new Error("Slug is required");
     if (!form.sku.trim()) throw new Error("SKU is required");
     if (!form.category.trim()) throw new Error("Category is required");
-    if (Number(form.basePrice) <= 0) throw new Error("Base price must be greater than 0");
+    if (Number(form.basePrice) <= 0)
+      throw new Error("Base price must be greater than 0");
 
-    const payload = {
-      ...form,
-      // finalPrice is virtual; no need to send
-      // also: category/tags ideally ObjectId(s)
-    };
+    const payload = { ...form };
 
-    const res = await fetch("/api/products", {
+    const res = await fetch("/api/product", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -190,50 +240,49 @@ export default function AdminProductCreatePage() {
     });
 
     const json = await safeJson(res);
-    if (!res.ok) throw new Error(json?.message || json?.msg || "Failed to create product");
+    if (!res.ok)
+      throw new Error(json?.message || json?.msg || "Failed to create product");
 
-    return json?.data; // created product doc
+    return json?.data;
   };
 
   /* ======================================================
      API: UPLOAD IMAGE
-     PATCH /api/products/[slug]?type=image
+     PATCH /api/product/[slug]?type=image
      FormData field: file
   ====================================================== */
   const uploadProductImage = async (slug: string, file: File) => {
     const fd = new FormData();
     fd.append("file", file);
 
-    const res = await fetch(`/api/products/${encodeURIComponent(slug)}?type=image`, {
-      method: "PATCH",
-      credentials: "include",
-      body: fd,
-    });
+    const res = await fetch(
+      `/api/product/${encodeURIComponent(slug)}?type=image`,
+      {
+        method: "PATCH",
+        credentials: "include",
+        body: fd,
+      }
+    );
 
     const json = await safeJson(res);
-    if (!res.ok) throw new Error(json?.message || json?.msg || "Image upload failed");
+    if (!res.ok)
+      throw new Error(json?.message || json?.msg || "Image upload failed");
 
-    // updated product returned
     return json?.data;
   };
 
   /* ---------- MAIN IMAGE UPLOAD (UI) ---------- */
   const handleMainImagePick = async (file: File | null) => {
     if (!file) return;
-
-    // must have slug
     const slug = form.slug?.trim();
     if (!slug) return alert("Please set product slug first (name/slug).");
 
     try {
       setUploadingMain(true);
       const updatedProduct = await uploadProductImage(slug, file);
-
-      // backend pushes URL into images[]
       const newImages: string[] = updatedProduct?.images ?? [];
       setForm((p) => ({ ...p, images: newImages }));
-
-      alert("Image uploaded successfully");
+      alert("Image uploaded ✅");
     } catch (e: any) {
       alert(e?.message || "Failed to upload image");
     } finally {
@@ -241,12 +290,7 @@ export default function AdminProductCreatePage() {
     }
   };
 
-  /* ---------- COLOR IMAGE UPLOAD (UI) ----------
-     NOTE: Your backend PATCH currently only pushes to product.images,
-     it does NOT support pushing into colors[].images.
-     So here we upload to product.images first, then copy that URL into the selected color images in UI.
-     (Best practice: create a dedicated endpoint for color images. If you want, I can update the API.)
-  ---------------------------------------------- */
+  /* ---------- COLOR IMAGE UPLOAD (UI) ---------- */
   const handleColorImagePick = async (colorIndex: number, file: File | null) => {
     if (!file) return;
     const slug = form.slug?.trim();
@@ -256,21 +300,19 @@ export default function AdminProductCreatePage() {
       setUploadingColorIndex(colorIndex);
       const updatedProduct = await uploadProductImage(slug, file);
 
-      // get last uploaded url (since backend pushes to images)
       const imgs: string[] = updatedProduct?.images ?? [];
       const lastUrl = imgs[imgs.length - 1];
-      if (!lastUrl) throw new Error("Upload succeeded but URL not found");
+      if (!lastUrl) throw new Error("Upload ok but URL missing");
 
-      // add into color variant images in UI
       setForm((p) => ({
         ...p,
         colors: p.colors.map((c, i) =>
           i === colorIndex ? { ...c, images: [...c.images, lastUrl] } : c
         ),
-        images: imgs, // keep product images in sync with backend
+        images: imgs,
       }));
 
-      alert("Color image uploaded successfully");
+      alert("Color image uploaded ✅");
     } catch (e: any) {
       alert(e?.message || "Failed to upload color image");
     } finally {
@@ -282,12 +324,8 @@ export default function AdminProductCreatePage() {
   const handleSubmit = async () => {
     try {
       setSaving(true);
-      const created = await createProduct();
-
+      await createProduct();
       alert("Product created successfully ✅");
-
-      // optional: redirect after create
-      // window.location.href = `/admin/products/${created?._id}`;
     } catch (e: any) {
       alert(e?.message || "Failed to create product");
     } finally {
@@ -308,8 +346,12 @@ export default function AdminProductCreatePage() {
             Back to Products
           </Link>
 
-          <h1 className="text-2xl font-semibold text-gray-800 mt-2">Create New Product</h1>
-          <p className="text-sm text-gray-500">Add product details, pricing, images and variants.</p>
+          <h1 className="text-2xl font-semibold text-gray-800 mt-2">
+            Create New Product
+          </h1>
+          <p className="text-sm text-gray-500">
+            Add product details, pricing, images and variants.
+          </p>
         </div>
 
         <button
@@ -335,7 +377,9 @@ export default function AdminProductCreatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-gray-600">Product Name *</label>
+                <label className="text-xs font-semibold text-gray-600">
+                  Product Name *
+                </label>
                 <input
                   value={form.name}
                   onChange={(e) => onNameChange(e.target.value)}
@@ -345,7 +389,9 @@ export default function AdminProductCreatePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-600">Slug *</label>
+                <label className="text-xs font-semibold text-gray-600">
+                  Slug *
+                </label>
                 <input
                   value={form.slug}
                   onChange={(e) => update("slug", slugify(e.target.value))}
@@ -358,7 +404,9 @@ export default function AdminProductCreatePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-600">SKU *</label>
+                <label className="text-xs font-semibold text-gray-600">
+                  SKU *
+                </label>
                 <input
                   value={form.sku}
                   onChange={(e) => update("sku", e.target.value.toUpperCase())}
@@ -368,10 +416,14 @@ export default function AdminProductCreatePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-600">Status</label>
+                <label className="text-xs font-semibold text-gray-600">
+                  Status
+                </label>
                 <select
                   value={form.status}
-                  onChange={(e) => update("status", e.target.value as ProductStatus)}
+                  onChange={(e) =>
+                    update("status", e.target.value as ProductStatus)
+                  }
                   className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-white outline-none"
                 >
                   <option value="active">active</option>
@@ -383,7 +435,9 @@ export default function AdminProductCreatePage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-gray-600">Description</label>
+              <label className="text-xs font-semibold text-gray-600">
+                Description
+              </label>
               <textarea
                 value={form.description}
                 onChange={(e) => update("description", e.target.value)}
@@ -399,12 +453,17 @@ export default function AdminProductCreatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-xs font-semibold text-gray-600">Base Price (BDT) *</label>
+                <label className="text-xs font-semibold text-gray-600">
+                  Base Price (BDT) *
+                </label>
                 <input
                   type="number"
                   value={form.basePrice}
                   onChange={(e) =>
-                    update("basePrice", clampNumber(Number(e.target.value), 0, 99999999))
+                    update(
+                      "basePrice",
+                      clampNumber(Number(e.target.value), 0, 99999999)
+                    )
                   }
                   className="mt-1 w-full border rounded-md px-3 py-2 text-sm outline-none"
                 />
@@ -423,18 +482,24 @@ export default function AdminProductCreatePage() {
                   }}
                   className="mt-1 w-full border rounded-md px-3 py-2 text-sm outline-none"
                 />
-                <p className="text-[11px] text-gray-500 mt-1">Must be less than base price.</p>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Must be less than base price.
+                </p>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-600">Final Price</label>
+                <label className="text-xs font-semibold text-gray-600">
+                  Final Price
+                </label>
                 <div className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-gray-50 text-gray-800 font-semibold">
                   ৳ {finalPrice.toLocaleString()}
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-600">Stock *</label>
+                <label className="text-xs font-semibold text-gray-600">
+                  Stock *
+                </label>
                 <input
                   type="number"
                   value={form.stock}
@@ -456,20 +521,22 @@ export default function AdminProductCreatePage() {
               </h2>
 
               <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm font-semibold hover:bg-gray-50 cursor-pointer">
-                {uploadingMain ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                {uploadingMain ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Plus size={16} />
+                )}
                 Upload Image
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => handleMainImagePick(e.target.files?.[0] ?? null)}
+                  onChange={(e) =>
+                    handleMainImagePick(e.target.files?.[0] ?? null)
+                  }
                 />
               </label>
             </div>
-
-            <p className="text-[11px] text-gray-500">
-              Note: Images upload uses <span className="font-semibold">PATCH /api/products/[slug]?type=image</span>. Make sure slug is set.
-            </p>
 
             {form.images.length === 0 ? (
               <div className="border rounded-lg bg-gray-50 p-8 text-center text-sm text-gray-500">
@@ -479,7 +546,11 @@ export default function AdminProductCreatePage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {form.images.map((url, idx) => (
                   <div key={idx} className="border rounded-lg overflow-hidden bg-white">
-                    <img src={url} alt={`Product ${idx}`} className="w-full h-28 object-cover bg-gray-50" />
+                    <img
+                      src={url}
+                      alt={`Product ${idx}`}
+                      className="w-full h-28 object-cover bg-gray-50"
+                    />
                     <div className="p-2 flex justify-between items-center">
                       <p className="text-[11px] text-gray-500 truncate">{url}</p>
                       <button
@@ -500,7 +571,9 @@ export default function AdminProductCreatePage() {
           {/* Color Variants */}
           <div className="bg-white border rounded-xl p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="font-semibold text-gray-800">Color Variants (optional)</h2>
+              <h2 className="font-semibold text-gray-800">
+                Color Variants (optional)
+              </h2>
 
               <button
                 onClick={addColor}
@@ -523,20 +596,28 @@ export default function AdminProductCreatePage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
                         <div>
-                          <label className="text-xs font-semibold text-gray-600">Color Name</label>
+                          <label className="text-xs font-semibold text-gray-600">
+                            Color Name
+                          </label>
                           <input
                             value={c.name}
-                            onChange={(e) => updateColor(idx, { name: e.target.value })}
+                            onChange={(e) =>
+                              updateColor(idx, { name: e.target.value })
+                            }
                             placeholder="Red"
                             className="mt-1 w-full border rounded-md px-3 py-2 text-sm outline-none"
                           />
                         </div>
 
                         <div>
-                          <label className="text-xs font-semibold text-gray-600">Hex (optional)</label>
+                          <label className="text-xs font-semibold text-gray-600">
+                            Hex (optional)
+                          </label>
                           <input
                             value={c.hex ?? ""}
-                            onChange={(e) => updateColor(idx, { hex: e.target.value })}
+                            onChange={(e) =>
+                              updateColor(idx, { hex: e.target.value })
+                            }
                             placeholder="#FF0000"
                             className="mt-1 w-full border rounded-md px-3 py-2 text-sm outline-none"
                           />
@@ -554,7 +635,12 @@ export default function AdminProductCreatePage() {
                               type="file"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) => handleColorImagePick(idx, e.target.files?.[0] ?? null)}
+                              onChange={(e) =>
+                                handleColorImagePick(
+                                  idx,
+                                  e.target.files?.[0] ?? null
+                                )
+                              }
                             />
                           </label>
                         </div>
@@ -570,16 +656,15 @@ export default function AdminProductCreatePage() {
                       </button>
                     </div>
 
-                    <p className="text-[11px] text-gray-500 mt-2">
-                      Color image uploads currently reuse product image upload endpoint, then copy the last URL into this color variant.
-                      If you want proper color-image API, I can update your PATCH endpoint to support <span className="font-semibold">colors[index].images</span>.
-                    </p>
-
                     {c.images.length > 0 ? (
                       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
                         {c.images.map((url, imgIndex) => (
                           <div key={imgIndex} className="border rounded-lg overflow-hidden">
-                            <img src={url} alt="Color" className="w-full h-24 object-cover bg-gray-50" />
+                            <img
+                              src={url}
+                              alt="Color"
+                              className="w-full h-24 object-cover bg-gray-50"
+                            />
                             <div className="p-2 flex justify-between items-center">
                               <p className="text-[11px] text-gray-500 truncate">{url}</p>
                               <button
@@ -608,7 +693,7 @@ export default function AdminProductCreatePage() {
 
         {/* RIGHT */}
         <div className="space-y-6">
-          {/* Category & Tags */}
+          {/* Category & Tags (FROM API) */}
           <div className="bg-white border rounded-xl p-6 shadow-sm space-y-4">
             <h2 className="font-semibold text-gray-800">Category & Tags</h2>
 
@@ -617,38 +702,42 @@ export default function AdminProductCreatePage() {
               <select
                 value={form.category}
                 onChange={(e) => update("category", e.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-white outline-none"
+                disabled={metaLoading}
+                className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-white outline-none disabled:opacity-60"
               >
-                <option value="">Select category</option>
-                {categoryOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                <option value="">
+                  {metaLoading ? "Loading categories..." : "Select category"}
+                </option>
+                {categoryOptions?.map((c) => (
+                  <option key={c?._id} value={c?._id}>
+                    {c?.name}
                   </option>
                 ))}
               </select>
               <p className="text-[11px] text-gray-500 mt-1">
-                Note: Your Product schema expects <span className="font-semibold">category = ObjectId</span>.  
-                Now you are sending a string. Better: load categories from DB and store _id.
+                ✅ Now sending category ObjectId.
               </p>
             </div>
 
             <div>
               <label className="text-xs font-semibold text-gray-600">Tags</label>
+
               <div className="mt-2 flex flex-wrap gap-2">
                 {tagOptions.map((t) => {
-                  const active = form.tags.includes(t);
+                  const active = form.tags.includes(t._id);
                   return (
                     <button
                       type="button"
-                      key={t}
-                      onClick={() => toggleTag(t)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                      key={t._id}
+                      onClick={() => toggleTag(t._id)}
+                      disabled={metaLoading}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition disabled:opacity-60 ${
                         active
                           ? "bg-orange-100 text-orange-700 border-orange-200"
                           : "bg-white text-gray-700 hover:bg-gray-50"
                       }`}
                     >
-                      {t}
+                      {t.name}
                     </button>
                   );
                 })}
@@ -656,7 +745,12 @@ export default function AdminProductCreatePage() {
 
               {form.tags.length > 0 ? (
                 <p className="text-xs text-gray-500 mt-2">
-                  Selected: <span className="font-semibold">{form.tags.join(", ")}</span>
+                  Selected:{" "}
+                  <span className="font-semibold">
+                    {form.tags
+                      .map((id) => tagOptions.find((t) => t._id === id)?.name || id)
+                      .join(", ")}
+                  </span>
                 </p>
               ) : (
                 <p className="text-xs text-gray-500 mt-2">No tags selected.</p>
@@ -683,7 +777,9 @@ export default function AdminProductCreatePage() {
               </p>
               <p>
                 <span className="text-gray-500">Final Price:</span>{" "}
-                <span className="font-semibold">৳ {finalPrice.toLocaleString()}</span>
+                <span className="font-semibold">
+                  ৳ {finalPrice.toLocaleString()}
+                </span>
               </p>
               <p>
                 <span className="text-gray-500">Stock:</span>{" "}
@@ -704,7 +800,11 @@ export default function AdminProductCreatePage() {
               disabled={saving}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {saving ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Save size={16} />
+              )}
               Save Product
             </button>
           </div>

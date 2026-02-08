@@ -28,7 +28,7 @@ interface Params {
 export async function GET(req: NextRequest, context: { params: Params }) {
   await dbConnect();
 
-  const { slug } = context.params;
+  const { slug } = await context.params;
 
   const category = await Category.findOne({ slug });
   if (!category) return errorResponse("Category not found", 404);
@@ -45,7 +45,7 @@ export async function PUT(req: NextRequest, context: { params: Params }) {
   const admin = await checkAdmin(req);
   if (!admin) return errorResponse("Unauthorized", 401);
 
-  const { slug } = context.params;
+  const { slug } = await context.params;
   const updates = await req.json();
 
   // Auto slug update if name changed
@@ -68,11 +68,13 @@ export async function PUT(req: NextRequest, context: { params: Params }) {
 // ===================================================
 export async function PATCH(req: NextRequest, context: { params: Params }) {
   await dbConnect();
+ 
+  
 
   const admin = await checkAdmin(req);
   if (!admin) return errorResponse("Unauthorized", 401);
 
-  const { slug } = context.params;
+  const { slug } = await context.params;
   const type = req.nextUrl.searchParams.get("type") || "image";
 
   if (!["image", "icon", "banner"].includes(type)) {
@@ -120,7 +122,7 @@ export async function DELETE(req: NextRequest, context: { params: Params }) {
   const admin = await checkAdmin(req);
   if (!admin) return errorResponse("Unauthorized", 401);
 
-  const { slug } = context.params;
+  const { slug } = await context.params;
 
   const deleted = await Category.findOneAndDelete({ slug });
 

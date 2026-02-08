@@ -14,8 +14,8 @@ import { checkAdmin } from "@/server/middleware/checkAdmin";
 export async function GET() {
   try {
     await dbConnect();
+const categories = await Category.find().sort({ priority: -1 }).lean();
 
-    const categories = await Category.find().sort({ priority: -1 });
     const tree = await Category.getTree();
 
     return successResponse("All categories loaded", { categories, tree });
@@ -40,7 +40,8 @@ export async function POST(req: NextRequest) {
       return validationErrorResponse({ name: "Name is required" });
     }
 
-    const slug = await Category.generateSlug(body.name);
+    const slug = await Category.generateSlug(body.name); 
+
 
     const category = await Category.create({
       name: body.name,

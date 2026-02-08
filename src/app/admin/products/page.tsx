@@ -24,13 +24,13 @@ interface ProductRow {
   name: string;
   slug: string;
   sku: string;
-  category: any; // can be string or populated object
+  category: any;
   status: ProductStatus;
   basePrice: number;
   discountPrice?: number | null;
-  finalPrice?: number; // virtual may not be present on lean if not enabled—fallback computed
+  finalPrice?: number;
   stock: number;
-  createdAt: string; // iso
+  createdAt: string;
 }
 
 type Pagination = {
@@ -112,8 +112,7 @@ function formatDate(iso?: string) {
 
 function getCategoryLabel(category: any) {
   if (!category) return "-";
-  if (typeof category === "string") return category; // maybe id
-  // populated object case
+  if (typeof category === "string") return category;
   return category?.name || category?.title || category?._id || "-";
 }
 
@@ -127,11 +126,10 @@ function computeFinalPrice(p: ProductRow) {
 export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | ProductStatus>("");
-  const [category, setCategory] = useState(""); // categoryId
+  const [category, setCategory] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  // API data
   const [items, setItems] = useState<ProductRow[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
@@ -144,7 +142,6 @@ export default function AdminProductsPage() {
 
   const [loading, setLoading] = useState(false);
 
-  // (Optional) categories from items (quick fix)
   const categories = useMemo(() => {
     const map = new Map<string, string>();
     items.forEach((p) => {
@@ -164,12 +161,11 @@ export default function AdminProductsPage() {
         limit,
         search: search.trim(),
         status,
-        category, // expects category id
-        // tag: "",
-        // sort: "price_low" | "price_high"
+        category,
       });
 
-      const res = await fetch(`/api/products${q}`, {
+      // ✅ FIXED: backend route is /api/product (not /api/products)
+      const res = await fetch(`/api/product${q}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -177,9 +173,7 @@ export default function AdminProductsPage() {
 
       const json = await safeJson(res);
 
-      if (!res.ok) {
-        throw new Error(json?.message || json?.msg || "Failed to fetch products");
-      }
+      if (!res.ok) throw new Error(json?.message || json?.msg || "Failed to fetch products");
 
       const list: ProductRow[] = json?.data?.items ?? [];
       const pg: Pagination =
@@ -194,7 +188,6 @@ export default function AdminProductsPage() {
 
       setItems(list);
       setPagination(pg);
-
       if (opts?.resetPage) setPage(1);
     } catch (e: any) {
       alert(e?.message || "Failed to fetch products");
@@ -208,11 +201,8 @@ export default function AdminProductsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit, status, category]);
 
-  // debounce search
   useEffect(() => {
-    const t = setTimeout(() => {
-      fetchProducts({ resetPage: true });
-    }, 400);
+    const t = setTimeout(() => fetchProducts({ resetPage: true }), 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
@@ -221,13 +211,26 @@ export default function AdminProductsPage() {
   const totalPages = Math.max(1, pagination.totalPages);
   const safePage = Math.min(page, totalPages);
 
-  const handleDelete = async (id: string) => {
-    const ok = confirm("Delete this product? (API not connected yet)");
+  const handleDelete = async (p: ProductRow) => {
+    const ok = confirm(`Delete product: "${p.name}" ?`);
     if (!ok) return;
 
-    // আপনার Product route.ts এ DELETE নাই, তাই এখন placeholder রাখলাম।
-    // আপনি চাইলে আমি DELETE/PATCH endpoint add করে দিবো।
-    alert(`Delete endpoint not available yet. ProductId: ${id}`);
+    try {
+      // ✅ your backend has DELETE by slug: /api/product/[slug]
+      const res = await fetch(`/api/product/${encodeURIComponent(p.slug)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const json = await safeJson(res);
+      if (!res.ok) throw new Error(json?.message || json?.msg || "Failed to delete");
+
+      // remove from UI
+      setItems((prev) => prev.filter((x) => x._id !== p._id));
+      // refetch to keep pagination accurate
+      fetchProducts();
+    } catch (e: any) {
+      alert(e?.message || "Failed to delete product");
+    }
   };
 
   return (
@@ -240,7 +243,7 @@ export default function AdminProductsPage() {
         </div>
 
         <Link
-          href="/admin/products/create"
+          href="/admin/products/new"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700"
         >
           <Plus size={16} />
@@ -257,9 +260,7 @@ export default function AdminProductsPage() {
               <Search size={16} className="text-gray-400" />
               <input
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                }}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, description..."
                 className="w-full text-sm outline-none"
               />
@@ -279,7 +280,6 @@ export default function AdminProductsPage() {
                 className="w-full text-sm outline-none bg-transparent"
               >
                 <option value="">All</option>
-                {/* Quick from loaded items. Better: fetch categories endpoint later */}
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.label}
@@ -370,26 +370,23 @@ export default function AdminProductsPage() {
                     </td>
 
                     <td className="py-3 px-4">{getCategoryLabel(p.category)}</td>
-
                     <td className="py-3 px-4 text-gray-700">{p.sku}</td>
 
                     <td className="py-3 px-4">
-                      <div className="space-y-0.5">
-                        {hasDeal ? (
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">৳ {final.toLocaleString()}</span>
-                            <span className="text-xs text-gray-400 line-through">
-                              ৳ {p.basePrice.toLocaleString()}
-                            </span>
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600">
-                              <BadgePercent size={14} />
-                              Deal
-                            </span>
-                          </div>
-                        ) : (
+                      {hasDeal ? (
+                        <div className="flex items-center gap-2">
                           <span className="font-semibold">৳ {final.toLocaleString()}</span>
-                        )}
-                      </div>
+                          <span className="text-xs text-gray-400 line-through">
+                            ৳ {p.basePrice.toLocaleString()}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600">
+                            <BadgePercent size={14} />
+                            Deal
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-semibold">৳ {final.toLocaleString()}</span>
+                      )}
                     </td>
 
                     <td className="py-3 px-4">
@@ -421,7 +418,7 @@ export default function AdminProductsPage() {
                         </Link>
 
                         <button
-                          onClick={() => handleDelete(p._id)}
+                          onClick={() => handleDelete(p)}
                           className="px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-semibold hover:bg-red-700 inline-flex items-center gap-2"
                         >
                           <Trash2 size={14} />
