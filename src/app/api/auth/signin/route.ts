@@ -1,0 +1,83 @@
+import dbConnect from "@/server/config/dbConnect";
+import { User } from "@/server/models/User.model";
+import { errorResponse, successResponse } from "@/server/utils/response";
+import { generateAccessToken, generateRefreshToken } from "@/server/utils/token";
+import { NextRequest } from "next/server";
+
+interface SigninPayload {
+  identifier: string;
+  password: string;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    const body: SigninPayload = await req.json();
+    const { identifier, password } = body;
+
+    if (!identifier || !password) {
+      return errorResponse("Identifier & password are required", 400);
+    }
+
+    const user = await User.findByIdentifier(identifier).select("+password");
+    if (!user) return errorResponse("Invalid credentials", 401);
+
+    if (user.lockUntil && user.lockUntil > new Date()) {
+      return errorResponse("Account temporarily locked. Try again later.", 403);
+    }
+
+    const isMatch = await user.comparePassword(password);
+
+    if (!isMatch) {
+      user.loginAttempts += 1;
+      if (user.loginAttempts >= 8) {
+        user.lockUntil = new Date(Date.now() + 10 * 60 * 1000);
+      }
+      await user.save();
+      return errorResponse("Invalid credentials", 401);
+    }
+
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+    user.lastLogin = new Date();
+    user.lastLoginIP = req.headers.get("x-forwarded-for") ?? "unknown";
+    await user.save();
+
+    const accessToken = generateAccessToken(user._id.toString());
+    const refreshToken = generateRefreshToken(user._id.toString());
+
+    const response = successResponse("Login successful", {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      avatar: user.avatar,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+    });
+
+    const isProd = true
+
+    response.cookies.set("access_token", accessToken, {
+      httpOnly: true,
+      secure: isProd,          // ✅ localhost এ false হবে
+      sameSite: "lax",         // ✅ strict না
+      maxAge: 60 * 60 * 24,
+      path: "/",
+    });
+
+    response.cookies.set("refresh_token", refreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    return response;
+  } catch (error) {
+    console.error("SIGNIN ERROR:", error);
+    return errorResponse("Internal Server Error", 500);
+  }
+}
