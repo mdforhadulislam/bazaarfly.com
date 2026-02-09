@@ -16,7 +16,7 @@ export async function GET(req: NextRequest, ctx: { params: Params }) {
   try {
     await dbConnect();
 
-    const { slug } = ctx.params;
+    const { slug } = await ctx.params;
 
     const product = await Product.findOne({ slug })
       .populate("category", "name slug")
@@ -42,7 +42,7 @@ export async function PUT(req: NextRequest, ctx: { params: Params }) {
     const admin = await checkAdmin(req);
     if (!admin) return errorResponse("Unauthorized", 401);
 
-    const { slug } = ctx.params;
+    const { slug } = await ctx.params;
     const updates = await req.json();
 
     const updated = await Product.findOneAndUpdate({ slug }, updates, {
@@ -70,7 +70,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Params }) {
 
     const cloudinary = cloudinaryConfig();
 
-    const { slug } = ctx.params;
+    const { slug } = await ctx.params;
     const type = req.nextUrl.searchParams.get("type") || "image";
 
     const form = await req.formData();
@@ -116,7 +116,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Params }) {
     const admin = await checkAdmin(req);
     if (!admin) return errorResponse("Unauthorized", 401);
 
-    const { slug } = ctx.params;
+    const { slug } = await ctx.params;
 
     const deleted = await Product.findOneAndDelete({ slug });
 

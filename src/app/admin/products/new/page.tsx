@@ -36,6 +36,9 @@ type ProductForm = {
   basePrice: number;
   discountPrice?: number | null;
 
+  commissionPercent: number; // ✅ NEW
+  commissionAmount: number; // ✅ NEW (auto)
+
   images: string[];
   colors: ColorVariant[];
 };
@@ -68,6 +71,17 @@ async function safeJson(res: Response) {
   }
 }
 
+// ✅ normalize API response -> array
+function asArray<T = any>(v: any): T[] {
+  if (Array.isArray(v)) return v;
+  if (Array.isArray(v?.data)) return v.data;
+  if (Array.isArray(v?.data?.items)) return v.data.items;
+  if (Array.isArray(v?.data?.categories)) return v.data.categories;
+  if (Array.isArray(v?.items)) return v.items;
+  if (Array.isArray(v?.categories)) return v.categories;
+  return [];
+}
+
 /* ---------------- PAGE ---------------- */
 export default function AdminProductCreatePage() {
   const [form, setForm] = useState<ProductForm>({
@@ -84,6 +98,9 @@ export default function AdminProductCreatePage() {
 
     basePrice: 0,
     discountPrice: null,
+
+    commissionPercent: 0, // ✅ NEW
+    commissionAmount: 0, // ✅ NEW
 
     images: [],
     colors: [],
@@ -113,11 +130,8 @@ export default function AdminProductCreatePage() {
           fetch("/api/tag", { credentials: "include" }),
         ]);
 
-
         const catJson = await safeJson(catRes);
         const tagJson = await safeJson(tagRes);
- 
-        
 
         if (!catRes.ok) {
           throw new Error(
@@ -125,13 +139,11 @@ export default function AdminProductCreatePage() {
           );
         }
         if (!tagRes.ok) {
-          throw new Error(
-            tagJson?.message || tagJson?.msg || "Failed to load tags"
-          );
+          throw new Error(tagJson?.message || tagJson?.msg || "Failed to load tags");
         }
 
-        const cats: OptionItem[] = catJson?.data.categories ?? [];
-        const tags: OptionItem[] = tagJson?.data ?? [];
+        const cats = asArray<OptionItem>(catJson);
+        const tags = asArray<OptionItem>(tagJson);
 
         if (!mounted) return;
         setCategoryOptions(cats);
@@ -154,6 +166,17 @@ export default function AdminProductCreatePage() {
     if (form.discountPrice && discount > 0 && discount < base) return discount;
     return base;
   }, [form.basePrice, form.discountPrice]);
+
+  // ✅ Commission amount auto calculation
+  const commissionAmount = useMemo(() => {
+    const percent = Number(form.commissionPercent || 0);
+    if (percent <= 0) return 0;
+    return Math.round((finalPrice * percent) / 100);
+  }, [finalPrice, form.commissionPercent]);
+
+  useEffect(() => {
+    setForm((prev) => ({ ...prev, commissionAmount }));
+  }, [commissionAmount]);
 
   const update = <K extends keyof ProductForm>(key: K, value: ProductForm[K]) =>
     setForm((p) => ({ ...p, [key]: value }));
@@ -230,7 +253,11 @@ export default function AdminProductCreatePage() {
     if (Number(form.basePrice) <= 0)
       throw new Error("Base price must be greater than 0");
 
-    const payload = { ...form };
+    const payload = {
+      ...form,
+      commissionPercent: Number(form.commissionPercent || 0),
+      commissionAmount: Number(commissionAmount || 0),
+    };
 
     const res = await fetch("/api/product", {
       method: "POST",
@@ -359,7 +386,11 @@ export default function AdminProductCreatePage() {
           disabled={saving}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          {saving ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <Save size={16} />
+          )}
           Save Product
         </button>
       </div>
@@ -508,6 +539,33 @@ export default function AdminProductCreatePage() {
                   }
                   className="mt-1 w-full border rounded-md px-3 py-2 text-sm outline-none"
                 />
+              </div>
+
+              {/* ✅ Commission */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600">
+                  Commission Percent (%)
+                </label>
+                <input
+                  type="number"
+                  value={form.commissionPercent}
+                  onChange={(e) =>
+                    update(
+                      "commissionPercent",
+                      clampNumber(Number(e.target.value), 0, 100)
+                    )
+                  }
+                  className="mt-1 w-full border rounded-md px-3 py-2 text-sm outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600">
+                  Commission Amount (BDT)
+                </label>
+                <div className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-gray-50 text-gray-800 font-semibold">
+                  ৳ {commissionAmount.toLocaleString()}
+                </div>
               </div>
             </div>
           </div>
@@ -708,11 +766,12 @@ export default function AdminProductCreatePage() {
                 <option value="">
                   {metaLoading ? "Loading categories..." : "Select category"}
                 </option>
-                {categoryOptions?.map((c) => (
-                  <option key={c?._id} value={c?._id}>
-                    {c?.name}
-                  </option>
-                ))}
+                {Array.isArray(categoryOptions) &&
+                  categoryOptions.map((c) => (
+                    <option key={c?._id} value={c?._id}>
+                      {c?.name}
+                    </option>
+                  ))}
               </select>
               <p className="text-[11px] text-gray-500 mt-1">
                 ✅ Now sending category ObjectId.
@@ -723,24 +782,25 @@ export default function AdminProductCreatePage() {
               <label className="text-xs font-semibold text-gray-600">Tags</label>
 
               <div className="mt-2 flex flex-wrap gap-2">
-                {tagOptions.map((t) => {
-                  const active = form.tags.includes(t._id);
-                  return (
-                    <button
-                      type="button"
-                      key={t._id}
-                      onClick={() => toggleTag(t._id)}
-                      disabled={metaLoading}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition disabled:opacity-60 ${
-                        active
-                          ? "bg-orange-100 text-orange-700 border-orange-200"
-                          : "bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {t.name}
-                    </button>
-                  );
-                })}
+                {Array.isArray(tagOptions) &&
+                  tagOptions.map((t) => {
+                    const active = form.tags.includes(t._id);
+                    return (
+                      <button
+                        type="button"
+                        key={t._id}
+                        onClick={() => toggleTag(t._id)}
+                        disabled={metaLoading}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition disabled:opacity-60 ${
+                          active
+                            ? "bg-orange-100 text-orange-700 border-orange-200"
+                            : "bg-white text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {t.name}
+                      </button>
+                    );
+                  })}
               </div>
 
               {form.tags.length > 0 ? (
@@ -777,8 +837,12 @@ export default function AdminProductCreatePage() {
               </p>
               <p>
                 <span className="text-gray-500">Final Price:</span>{" "}
+                <span className="font-semibold">৳ {finalPrice.toLocaleString()}</span>
+              </p>
+              <p>
+                <span className="text-gray-500">Commission:</span>{" "}
                 <span className="font-semibold">
-                  ৳ {finalPrice.toLocaleString()}
+                  {form.commissionPercent}% = ৳ {commissionAmount.toLocaleString()}
                 </span>
               </p>
               <p>
@@ -800,11 +864,7 @@ export default function AdminProductCreatePage() {
               disabled={saving}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {saving ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Save size={16} />
-              )}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Save Product
             </button>
           </div>

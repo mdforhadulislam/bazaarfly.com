@@ -30,6 +30,10 @@ interface ProductRow {
   discountPrice?: number | null;
   finalPrice?: number;
   stock: number;
+
+  commissionPercent?: number; // ✅ NEW
+  commissionAmount?: number; // ✅ NEW
+
   createdAt: string;
 }
 
@@ -122,6 +126,14 @@ function computeFinalPrice(p: ProductRow) {
   return p.basePrice;
 }
 
+function computeCommissionAmount(p: ProductRow) {
+  const final = computeFinalPrice(p);
+  const percent = Number(p.commissionPercent || 0);
+  if (typeof p.commissionAmount === "number") return p.commissionAmount;
+  if (percent <= 0) return 0;
+  return Math.round((final * percent) / 100);
+}
+
 /* ---------------- PAGE ---------------- */
 export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
@@ -164,7 +176,6 @@ export default function AdminProductsPage() {
         category,
       });
 
-      // ✅ FIXED: backend route is /api/product (not /api/products)
       const res = await fetch(`/api/product${q}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -172,7 +183,6 @@ export default function AdminProductsPage() {
       });
 
       const json = await safeJson(res);
-
       if (!res.ok) throw new Error(json?.message || json?.msg || "Failed to fetch products");
 
       const list: ProductRow[] = json?.data?.items ?? [];
@@ -216,7 +226,6 @@ export default function AdminProductsPage() {
     if (!ok) return;
 
     try {
-      // ✅ your backend has DELETE by slug: /api/product/[slug]
       const res = await fetch(`/api/product/${encodeURIComponent(p.slug)}`, {
         method: "DELETE",
         credentials: "include",
@@ -224,9 +233,7 @@ export default function AdminProductsPage() {
       const json = await safeJson(res);
       if (!res.ok) throw new Error(json?.message || json?.msg || "Failed to delete");
 
-      // remove from UI
       setItems((prev) => prev.filter((x) => x._id !== p._id));
-      // refetch to keep pagination accurate
       fetchProducts();
     } catch (e: any) {
       alert(e?.message || "Failed to delete product");
@@ -349,6 +356,7 @@ export default function AdminProductsPage() {
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">SKU</th>
                 <th className="py-3 px-4">Price</th>
+                <th className="py-3 px-4">Commission</th>
                 <th className="py-3 px-4">Stock</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Created</th>
@@ -361,6 +369,9 @@ export default function AdminProductsPage() {
                 const final = computeFinalPrice(p);
                 const hasDeal =
                   p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.basePrice;
+
+                const cPercent = Number(p.commissionPercent || 0);
+                const cAmount = computeCommissionAmount(p);
 
                 return (
                   <tr key={p._id} className="border-t">
@@ -390,6 +401,16 @@ export default function AdminProductsPage() {
                     </td>
 
                     <td className="py-3 px-4">
+                      {cPercent > 0 ? (
+                        <span className="text-xs font-semibold text-gray-700">
+                          {cPercent}% = ৳ {cAmount.toLocaleString()}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4">
                       <StockBadge stock={p.stock} />
                     </td>
 
@@ -402,7 +423,7 @@ export default function AdminProductsPage() {
                     <td className="py-3 px-4">
                       <div className="flex justify-end items-center gap-2">
                         <Link
-                          href={`/admin/products/${p._id}`}
+                          href={`/admin/products/${p.slug}`}
                           className="px-3 py-1.5 rounded-md border text-xs font-semibold hover:bg-gray-50 inline-flex items-center gap-2"
                         >
                           <Eye size={14} />
@@ -410,7 +431,7 @@ export default function AdminProductsPage() {
                         </Link>
 
                         <Link
-                          href={`/admin/products/${p._id}/edit`}
+                          href={`/admin/products/${p.slug}/edit`}
                           className="px-3 py-1.5 rounded-md border text-xs font-semibold hover:bg-gray-50 inline-flex items-center gap-2"
                         >
                           <Pencil size={14} />
@@ -432,7 +453,7 @@ export default function AdminProductsPage() {
 
               {!loading && items.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-gray-500">
+                  <td colSpan={9} className="py-10 text-center text-gray-500">
                     No products found.
                   </td>
                 </tr>
