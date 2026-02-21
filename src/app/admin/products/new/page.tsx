@@ -1,3 +1,4 @@
+// D:\bazaarfly.com\src\app\admin\products\new\page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -99,8 +100,8 @@ export default function AdminProductCreatePage() {
     basePrice: 0,
     discountPrice: null,
 
-    commissionPercent: 0, // ✅ NEW
-    commissionAmount: 0, // ✅ NEW
+    commissionPercent: 0,
+    commissionAmount: 0,
 
     images: [],
     colors: [],
@@ -176,6 +177,7 @@ export default function AdminProductCreatePage() {
 
   useEffect(() => {
     setForm((prev) => ({ ...prev, commissionAmount }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commissionAmount]);
 
   const update = <K extends keyof ProductForm>(key: K, value: ProductForm[K]) =>
@@ -274,41 +276,43 @@ export default function AdminProductCreatePage() {
   };
 
   /* ======================================================
-     API: UPLOAD IMAGE
-     PATCH /api/product/[slug]?type=image
+     API: GENERIC UPLOAD (Cloudinary)
+     POST /api/upload
      FormData field: file
+     returns: { data: { url } }
   ====================================================== */
-  const uploadProductImage = async (slug: string, file: File) => {
+  const uploadToCloudinary = async (file: File) => {
     const fd = new FormData();
     fd.append("file", file);
 
-    const res = await fetch(
-      `/api/product/${encodeURIComponent(slug)}?type=image`,
-      {
-        method: "PATCH",
-        credentials: "include",
-        body: fd,
-      }
-    );
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      credentials: "include",
+      body: fd,
+    });
 
     const json = await safeJson(res);
-    if (!res.ok)
-      throw new Error(json?.message || json?.msg || "Image upload failed");
+    if (!res.ok) throw new Error(json?.message || "Upload failed");
 
-    return json?.data;
+    const url = json?.data?.url as string;
+    if (!url) throw new Error("Upload ok but URL missing");
+    return url;
   };
 
   /* ---------- MAIN IMAGE UPLOAD (UI) ---------- */
   const handleMainImagePick = async (file: File | null) => {
     if (!file) return;
-    const slug = form.slug?.trim();
-    if (!slug) return alert("Please set product slug first (name/slug).");
 
     try {
       setUploadingMain(true);
-      const updatedProduct = await uploadProductImage(slug, file);
-      const newImages: string[] = updatedProduct?.images ?? [];
-      setForm((p) => ({ ...p, images: newImages }));
+
+      const url = await uploadToCloudinary(file);
+
+      setForm((p) => ({
+        ...p,
+        images: [...p.images, url],
+      }));
+
       alert("Image uploaded ✅");
     } catch (e: any) {
       alert(e?.message || "Failed to upload image");
@@ -320,23 +324,17 @@ export default function AdminProductCreatePage() {
   /* ---------- COLOR IMAGE UPLOAD (UI) ---------- */
   const handleColorImagePick = async (colorIndex: number, file: File | null) => {
     if (!file) return;
-    const slug = form.slug?.trim();
-    if (!slug) return alert("Please set product slug first (name/slug).");
 
     try {
       setUploadingColorIndex(colorIndex);
-      const updatedProduct = await uploadProductImage(slug, file);
 
-      const imgs: string[] = updatedProduct?.images ?? [];
-      const lastUrl = imgs[imgs.length - 1];
-      if (!lastUrl) throw new Error("Upload ok but URL missing");
+      const url = await uploadToCloudinary(file);
 
       setForm((p) => ({
         ...p,
         colors: p.colors.map((c, i) =>
-          i === colorIndex ? { ...c, images: [...c.images, lastUrl] } : c
+          i === colorIndex ? { ...c, images: [...c.images, url] } : c
         ),
-        images: imgs,
       }));
 
       alert("Color image uploaded ✅");
@@ -353,6 +351,7 @@ export default function AdminProductCreatePage() {
       setSaving(true);
       await createProduct();
       alert("Product created successfully ✅");
+      window.location.href = "/admin/products";
     } catch (e: any) {
       alert(e?.message || "Failed to create product");
     } finally {
@@ -589,9 +588,11 @@ export default function AdminProductCreatePage() {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) =>
-                    handleMainImagePick(e.target.files?.[0] ?? null)
-                  }
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    handleMainImagePick(file);
+                    e.currentTarget.value = ""; // ✅ reset
+                  }}
                 />
               </label>
             </div>
@@ -693,12 +694,11 @@ export default function AdminProductCreatePage() {
                               type="file"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) =>
-                                handleColorImagePick(
-                                  idx,
-                                  e.target.files?.[0] ?? null
-                                )
-                              }
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] ?? null;
+                                handleColorImagePick(idx, file);
+                                e.currentTarget.value = ""; // ✅ reset
+                              }}
                             />
                           </label>
                         </div>
@@ -717,14 +717,19 @@ export default function AdminProductCreatePage() {
                     {c.images.length > 0 ? (
                       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
                         {c.images.map((url, imgIndex) => (
-                          <div key={imgIndex} className="border rounded-lg overflow-hidden">
+                          <div
+                            key={imgIndex}
+                            className="border rounded-lg overflow-hidden"
+                          >
                             <img
                               src={url}
                               alt="Color"
                               className="w-full h-24 object-cover bg-gray-50"
                             />
                             <div className="p-2 flex justify-between items-center">
-                              <p className="text-[11px] text-gray-500 truncate">{url}</p>
+                              <p className="text-[11px] text-gray-500 truncate">
+                                {url}
+                              </p>
                               <button
                                 onClick={() => removeColorImage(idx, imgIndex)}
                                 className="text-red-600 hover:bg-red-50 rounded-md p-1"
@@ -756,7 +761,9 @@ export default function AdminProductCreatePage() {
             <h2 className="font-semibold text-gray-800">Category & Tags</h2>
 
             <div>
-              <label className="text-xs font-semibold text-gray-600">Category *</label>
+              <label className="text-xs font-semibold text-gray-600">
+                Category *
+              </label>
               <select
                 value={form.category}
                 onChange={(e) => update("category", e.target.value)}
@@ -808,7 +815,10 @@ export default function AdminProductCreatePage() {
                   Selected:{" "}
                   <span className="font-semibold">
                     {form.tags
-                      .map((id) => tagOptions.find((t) => t._id === id)?.name || id)
+                      .map(
+                        (id) =>
+                          tagOptions.find((t) => t._id === id)?.name || id
+                      )
                       .join(", ")}
                   </span>
                 </p>
@@ -837,7 +847,9 @@ export default function AdminProductCreatePage() {
               </p>
               <p>
                 <span className="text-gray-500">Final Price:</span>{" "}
-                <span className="font-semibold">৳ {finalPrice.toLocaleString()}</span>
+                <span className="font-semibold">
+                  ৳ {finalPrice.toLocaleString()}
+                </span>
               </p>
               <p>
                 <span className="text-gray-500">Commission:</span>{" "}
@@ -864,7 +876,11 @@ export default function AdminProductCreatePage() {
               disabled={saving}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {saving ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Save size={16} />
+              )}
               Save Product
             </button>
           </div>
